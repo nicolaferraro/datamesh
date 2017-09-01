@@ -12,29 +12,15 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	database := core.NewDatabase(ctx, "Hello")
+	database := core.NewDatabase(ctx, "Hello World")
 	defer close(database.EventInputChannel())
 
 	fmt.Println(database.Name())
 
 	go func() {
-		select {
-		case database.EventInputChannel() <- core.NewEvent(eventtype.Add):
-		case <-ctx.Done():
-			return
-		}
-
-		select {
-		case database.EventInputChannel() <- core.NewEvent(eventtype.Remove):
-		case <-ctx.Done():
-			return
-		}
-
-		select {
-		case database.EventInputChannel() <- core.NewEvent(eventtype.Noop):
-		case <-ctx.Done():
-			return
-		}
+		database.EventInputChannel() <- core.NewEvent(eventtype.Add)
+		database.EventInputChannel() <- core.NewEvent(eventtype.Remove)
+		database.EventInputChannel() <- core.NewEvent(eventtype.Noop)
 	}()
 
 	for _ = range []int{1, 2, 3} {
