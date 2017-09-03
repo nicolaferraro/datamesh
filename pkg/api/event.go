@@ -1,9 +1,17 @@
 package api
 
-import "github.com/nicolaferraro/event-db/pkg/api/eventtype"
 
 type Event interface {
 
-	Type()		eventtype.EventType
+	Type()		EventType
 
+}
+
+
+type EventReceiver interface {
+	EventInputChannel()		chan<- Event
+}
+
+type EventProducer interface {
+	EventOutputChannel()	<-chan Event
 }

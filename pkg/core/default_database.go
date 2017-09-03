@@ -3,6 +3,7 @@ package core
 import (
 	"github.com/nicolaferraro/event-db/pkg/api"
 	"context"
+	"fmt"
 )
 
 // Default database struct
@@ -19,6 +20,14 @@ func NewDatabase(ctx context.Context, name string) api.Database {
 		eventInputChannel: make(chan api.Event),
 		eventOutputChannel: make(chan api.Event),
 	}
+
+	// Set database deinitialization
+	go func() {
+		<- ctx.Done()
+		fmt.Println("Closing database channels")
+		close(db.eventInputChannel)
+		close(db.eventOutputChannel)
+	}()
 
 	go func() {
 		for {

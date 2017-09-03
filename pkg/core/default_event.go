@@ -2,16 +2,15 @@ package core
 
 import (
 	"github.com/nicolaferraro/event-db/pkg/api"
-	"github.com/nicolaferraro/event-db/pkg/api/eventtype"
 )
 
 
 // Default struct for Event
 type DefaultEvent struct {
-	eventType	eventtype.EventType
+	eventType	api.EventType
 }
 
-func NewEvent(eventType eventtype.EventType) api.Event {
+func NewEvent(eventType api.EventType) api.Event {
 	event := DefaultEvent{}
 	event.eventType = eventType
 	return event
@@ -19,6 +18,6 @@ func NewEvent(eventType eventtype.EventType) api.Event {
 
 
 // Interface methods
-func (event DefaultEvent) Type() eventtype.EventType {
+func (event DefaultEvent) Type() api.EventType {
 	return event.eventType
 }
