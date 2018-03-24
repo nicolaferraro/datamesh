@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/nicolaferraro/event-db/pkg/core"
-	"github.com/nicolaferraro/event-db/pkg/api"
+	"github.com/nicolaferraro/event-db/tests/core"
+	"github.com/nicolaferraro/event-db/tests/api"
 	"context"
 	"time"
-	_"github.com/nicolaferraro/event-db/pkg/flux"
+	_"github.com/nicolaferraro/event-db/tests/flux"
 )
 
 func main() {
