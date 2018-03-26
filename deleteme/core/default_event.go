@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/nicolaferraro/event-db/tests/api"
+	"github.com/nicolaferraro/event-db/deleteme/api"
 )
 
 

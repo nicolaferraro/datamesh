@@ -4,6 +4,7 @@ import (
 	"testing"
 	"os"
 	"strconv"
+	"reflect"
 )
 
 const testDir = "../.testdata/log"
@@ -17,12 +18,17 @@ func TestLogBasicUsage(t *testing.T) {
 	}
 
 	for i:=1; i<=20; i++ {
-		num, err := eventLog.Append([]byte("Record" + strconv.Itoa(i)))
+		record := []byte("Record" + strconv.Itoa(i))
+		num, err := eventLog.Append(record)
 		if err != nil {
 			t.Fatal("Cannot append:", err)
 		}
 		if num != uint64(i) {
 			t.Fatal("Wrong number of entries. Expected:", i, "Got:", num)
+		}
+
+		if !reflect.DeepEqual(record, []byte("Record" + strconv.Itoa(i))) {
+			t.Fatal("Record changed")
 		}
 	}
 
