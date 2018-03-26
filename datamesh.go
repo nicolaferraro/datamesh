@@ -7,14 +7,22 @@ import (
 )
 
 func main() {
-	dir := flag.String("dir", "./data", "Data directory for the data mesh")
+	dir := flag.String("dir", "./data", "Data directory. Default: \".data\"")
+	port := flag.Int("port", 6543, "Server port. Default: 6543")
 	flag.Parse()
 
-	_, err := mesh.NewMesh(*dir)
+	log.Printf("configured dir: '%s'", *dir)
+	log.Printf("configured port: '%d'", *port)
+
+	msh, err := mesh.NewMesh(*dir, *port)
 	if err != nil {
-		log.Fatal("Cannot start data mesh: ", err)
+		log.Fatal("cannot initialize data mesh: ", err)
 	}
 
-	log.Println("Data mesh started...")
+	log.Printf("data mesh started on port %d", *port)
+
+	if err := msh.Start(); err != nil {
+		log.Fatal("data mesh error: ", err)
+	}
 
 }

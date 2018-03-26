@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/nicolaferraro/event-db/deleteme/api"
+	"github.com/nicolaferraro/datamesh/deleteme/api"
 	"context"
 	"fmt"
 )

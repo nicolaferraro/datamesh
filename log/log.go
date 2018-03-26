@@ -53,6 +53,14 @@ func (log *Log) Append(data []byte) (uint64, error) {
 	return newSize, nil
 }
 
+/*
+ * implements utils.MessageObserver
+ */
+func (log *Log) Accept(data []byte) error {
+	_, err := log.Append(data)
+	return err
+}
+
 func (log *Log) Sync() error {
 	return log.file.Sync()
 }
