@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package service;
+
+service DataMesh {
+
+  rpc Push(Event) returns (Empty) {}
+
+}
+
+message Event {
+  string  name    = 1;
+  bytes   payload = 2;
+}
+
+message Empty {
+
+}

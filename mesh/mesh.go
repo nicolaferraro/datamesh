@@ -4,7 +4,7 @@ import (
 	"github.com/nicolaferraro/datamesh/log"
 	"github.com/nicolaferraro/datamesh/projection"
 	"path"
-	"github.com/nicolaferraro/datamesh/server"
+	"github.com/nicolaferraro/datamesh/service"
 )
 
 const (
@@ -15,7 +15,7 @@ type Mesh struct {
 	dir			string
 	log			*log.Log
 	projection	*projection.Projection
-	server		*server.Server
+	server		*service.DefaultDataMeshServer
 }
 
 func NewMesh(dir string, port int) (*Mesh, error) {
@@ -24,7 +24,7 @@ func NewMesh(dir string, port int) (*Mesh, error) {
 		return nil, err
 	}
 	prj := projection.NewProjection()
-	srv := server.NewServer(port, eventLog)
+	srv := service.NewDefaultDataMeshServer(port, eventLog)
 
 	return &Mesh{
 		dir: dir,
