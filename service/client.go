@@ -6,7 +6,7 @@ import (
 )
 
 func NewDataMeshClientConnection(host string, port int) (DataMeshClient, error) {
-	conn, err := grpc.Dial(host + ":" + strconv.Itoa(port))
+	conn, err := grpc.Dial(host + ":" + strconv.Itoa(port), grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}

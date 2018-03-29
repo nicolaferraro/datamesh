@@ -5,8 +5,7 @@ import (
 	"google.golang.org/grpc"
 	"fmt"
 	"net"
-	"log"
-	"github.com/nicolaferraro/datamesh/utils"
+	"github.com/nicolaferraro/datamesh/common"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -18,11 +17,12 @@ type DataMeshServer interface {
 
 
 type DefaultDataMeshServer struct {
-	port		int
-	observer	utils.MessageObserver
+	port     		int
+	observer		common.MessageObserver
+	grpcServer 		*grpc.Server
 }
 
-func NewDefaultDataMeshServer(port int, observer utils.MessageObserver) *DefaultDataMeshServer {
+func NewDefaultDataMeshServer(port int, observer common.MessageObserver) *DefaultDataMeshServer {
 	return &DefaultDataMeshServer{
 		port: port,
 		observer: observer,
@@ -34,16 +34,20 @@ func (srv *DefaultDataMeshServer) Push(ctx context.Context, evt *Event) (*Empty,
 	if err != nil {
 		return nil, err
 	}
-	return nil, srv.observer.Accept(msg)
+	if err = srv.observer.Accept(msg); err != nil {
+		return nil, err
+	}
+	return &Empty{}, nil
 }
 
 func (srv *DefaultDataMeshServer) Start() error {
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", srv.port))
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		return err
 	}
 
-	grpcServer := grpc.NewServer()
-	RegisterDataMeshServer(grpcServer, srv)
-	return grpcServer.Serve(lis)
+	srv.grpcServer = grpc.NewServer()
+	RegisterDataMeshServer(srv.grpcServer, srv)
+	srv.grpcServer.Serve(lis)
+	return nil
 }
