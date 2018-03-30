@@ -6,6 +6,18 @@ service DataMesh {
 
   rpc Push(Event) returns (Empty) {}
 
+  rpc Observe(ObserverStatus) returns (stream Event) {}
+
+  rpc Compute(stream Computation) returns (stream Event) {}
+
+}
+
+message ObserverStatus {
+  int64   version   = 1;
+}
+
+message Computation {
+  // TBD
 }
 
 message Event {
