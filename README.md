@@ -1,13 +1,13 @@
 # DataMesh
 
-A experimental project for building a event-based datastore in go (study purpose).
+A experimental project for building a **event-based datastore** in go (study purpose).
 
 ## What's a event-based datastore?
 
 The concept of a event-based datastore comes from an attempt to take all the ideas developed within **DDD, Event-Sourcing and CQRS back to
 the earth**, where real programmer live and try to develop useful software.
 
-A DataMesh node provides high-throughput, low-latency, fast and reliable persistent data storage for event-based (µ) services.
+A **DataMesh** node provides **high-throughput, low-latency, fast and reliable persistent data storage for event-based (µ) services**.
 
 To be clear, a DataMesh node:
 
@@ -31,37 +31,46 @@ Multiple DataMesh nodes can be connected to share event data, although data cont
 
 A DataMesh datastore has several advantages over traditional SQL/No-SQL **CRUD** databases.
 
-###1. High Processing Throughput
+### 1. High Processing Throughput
 
-Technically, the only data that needs to be persisted is the event stream, because projections can be deterministically re-created from such stream.
-This allows DataMesh to batch writes to disk on append-only files and allows a single node to reach
-*performances comparable to a fast message broker*, way much faster than a (durable) No-SQL database.
+Technically, the *only data that needs to be persisted is the event stream*, because projections can be deterministically re-created from such stream.
+This allows DataMesh to *batch writes* to disk on *append-only files* and allows a single node to reach
+**performances comparable to a fast message broker**, way much faster than a (durable) No-SQL database.
 
-###2. Faster Data Access
+### 2. Faster Data Access
 
 Data is queried by the application in several ways that are not known in advance when developing a new application.
 When facing these scenarios, traditionally, people used to rely on indexes provided by the RDMS or external *search engines* that were fed asynchronously with data from the main database.
 
-A DataMesh allows to define multiple *projections*, even on the same data, so that new *query paths* required by the application can be
-*optimized by simply adding new projections*. Data in the projections is *always consistent*.
+A DataMesh allows to define multiple *projections*, even on the same data, so that new **query paths** required by the application can be
+**optimized by simply adding new projections**. Data in all projections is **guaranteed to be consistent**.
 
-###3. Rolling Upgrade, Blue-Green and Canary
+### 3. Rolling Upgrade, Blue-Green and Canary
 
 Rolling upgrade, blue-green deployments, canary deployments are well known techniques for upgrading (µ) services.
 But most of the examples you'll find in *talks and demos show you how to change the color of a text of a static web application, not a real upgrade*.
 
 The reason is that managing data in standard databases is hard, so people try to avoid talking about data. But *event-based datastores simplify things a lot*.
 
-A DataMesh datastore allows you to run *multiple versions of the datastore projections** concurently active for the same event stream.
-This allows you to *upgrade your (µ) service together with its data* according to the upgrade strategy of your choice.
+A DataMesh datastore allows you to **run multiple versions of the datastore projections concurently** for the same event stream.
+This allows you to **upgrade your (µ) service together with its data** according to the upgrade strategy of your choice.
 
-###4. Easy Data Sharing
+### 4. Easy Data Sharing
 
-All data is produced in form of events and *events are suitable for being shared asynchronously among services*.
+All data is produced in form of events and **events are suitable for being shared asynchronously among services**.
 Differently from what happens with synchronous communication (e.g. HTTP) asynchronous event synchronization mimics communication in real life and
 developers should not care about a series of aspects that are hard to face: communication failure, retry policies, circuit breaking, backpressure, etc.
-When moved from one service to the other, data can be also transformed and converted according to the rules and domain model of the recipient (µ) service.
+
+When moved from one node to the other, data can be also transformed and converted according to the rules and domain model of the recipient (µ) service.
 
 ## How does it work?
 
 I know how it can work, but it's late night...
+
+## Why is it called DataMesh?
+
+Many people are now working on so called "Service Mesh", that add a layer of indirection over direct (HTTP) communication among (µ) services
+to provide new features such as tracing, circuit breaking (and others).
+
+But, if all services in a system use a "Data Mesh", direct communication among (µ) services is no longer necessary, since events will be shared asynchronously by the mesh nodes.
+In this pure context, a "Data Mesh" can completely replace a "Service Mesh", hence the name.
