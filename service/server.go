@@ -7,6 +7,7 @@ import (
 	"net"
 	"github.com/nicolaferraro/datamesh/common"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/empty"
 )
 
 /*
@@ -29,7 +30,7 @@ func NewDefaultDataMeshServer(port int, observer common.MessageObserver) *Defaul
 	}
 }
 
-func (srv *DefaultDataMeshServer) Push(ctx context.Context, evt *Event) (*Empty, error) {
+func (srv *DefaultDataMeshServer) Push(ctx context.Context, evt *Event) (*empty.Empty, error) {
 	msg, err := proto.Marshal(evt)
 	if err != nil {
 		return nil, err
@@ -37,7 +38,24 @@ func (srv *DefaultDataMeshServer) Push(ctx context.Context, evt *Event) (*Empty,
 	if err = srv.observer.Accept(msg); err != nil {
 		return nil, err
 	}
-	return &Empty{}, nil
+	return &empty.Empty{}, nil
+}
+
+
+func (srv *DefaultDataMeshServer) FastProcess(context.Context, *Transaction) (*empty.Empty, error) {
+	// TBD
+	return &empty.Empty{}, nil
+}
+
+
+func (srv *DefaultDataMeshServer) Process(DataMesh_ProcessServer) error {
+	// TBD
+	return nil
+}
+
+func (srv *DefaultDataMeshServer) Read(context.Context, *Path) (*Data, error) {
+	// TBD
+	return nil, nil
 }
 
 func (srv *DefaultDataMeshServer) Start() error {

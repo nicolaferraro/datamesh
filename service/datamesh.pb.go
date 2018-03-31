@@ -8,15 +8,24 @@ It is generated from these files:
 	service/datamesh.proto
 
 It has these top-level messages:
-	ObserverStatus
+	Transaction
+	Operation
+	ReadOperation
+	UpsertOperation
+	DeleteOperation
+	GenerateEventOperation
+	ApplicationFailure
 	Event
-	Empty
+	Path
+	Data
 */
 package service
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+import google_protobuf "github.com/golang/protobuf/ptypes/struct"
+import google_protobuf1 "github.com/golang/protobuf/ptypes/empty"
 
 import (
 	context "golang.org/x/net/context"
@@ -34,31 +43,375 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type ObserverStatus struct {
-	Version int64 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
+// A transaction is a sequence of operation triggered by a event.
+type Transaction struct {
+	// The trigger
+	Event *Event `protobuf:"bytes,1,opt,name=event" json:"event,omitempty"`
+	// The operations
+	Operations []*Operation `protobuf:"bytes,2,rep,name=operations" json:"operations,omitempty"`
 }
 
-func (m *ObserverStatus) Reset()                    { *m = ObserverStatus{} }
-func (m *ObserverStatus) String() string            { return proto.CompactTextString(m) }
-func (*ObserverStatus) ProtoMessage()               {}
-func (*ObserverStatus) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+func (m *Transaction) Reset()                    { *m = Transaction{} }
+func (m *Transaction) String() string            { return proto.CompactTextString(m) }
+func (*Transaction) ProtoMessage()               {}
+func (*Transaction) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
-func (m *ObserverStatus) GetVersion() int64 {
+func (m *Transaction) GetEvent() *Event {
 	if m != nil {
-		return m.Version
+		return m.Event
 	}
-	return 0
+	return nil
 }
 
+func (m *Transaction) GetOperations() []*Operation {
+	if m != nil {
+		return m.Operations
+	}
+	return nil
+}
+
+type Operation struct {
+	// Types that are valid to be assigned to Kind:
+	//	*Operation_Read
+	//	*Operation_Upsert
+	//	*Operation_Delete
+	//	*Operation_Generate
+	//	*Operation_Failure
+	Kind isOperation_Kind `protobuf_oneof:"kind"`
+}
+
+func (m *Operation) Reset()                    { *m = Operation{} }
+func (m *Operation) String() string            { return proto.CompactTextString(m) }
+func (*Operation) ProtoMessage()               {}
+func (*Operation) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+
+type isOperation_Kind interface {
+	isOperation_Kind()
+}
+
+type Operation_Read struct {
+	Read *ReadOperation `protobuf:"bytes,1,opt,name=read,oneof"`
+}
+type Operation_Upsert struct {
+	Upsert *UpsertOperation `protobuf:"bytes,2,opt,name=upsert,oneof"`
+}
+type Operation_Delete struct {
+	Delete *DeleteOperation `protobuf:"bytes,3,opt,name=delete,oneof"`
+}
+type Operation_Generate struct {
+	Generate *GenerateEventOperation `protobuf:"bytes,4,opt,name=generate,oneof"`
+}
+type Operation_Failure struct {
+	Failure *ApplicationFailure `protobuf:"bytes,5,opt,name=failure,oneof"`
+}
+
+func (*Operation_Read) isOperation_Kind()     {}
+func (*Operation_Upsert) isOperation_Kind()   {}
+func (*Operation_Delete) isOperation_Kind()   {}
+func (*Operation_Generate) isOperation_Kind() {}
+func (*Operation_Failure) isOperation_Kind()  {}
+
+func (m *Operation) GetKind() isOperation_Kind {
+	if m != nil {
+		return m.Kind
+	}
+	return nil
+}
+
+func (m *Operation) GetRead() *ReadOperation {
+	if x, ok := m.GetKind().(*Operation_Read); ok {
+		return x.Read
+	}
+	return nil
+}
+
+func (m *Operation) GetUpsert() *UpsertOperation {
+	if x, ok := m.GetKind().(*Operation_Upsert); ok {
+		return x.Upsert
+	}
+	return nil
+}
+
+func (m *Operation) GetDelete() *DeleteOperation {
+	if x, ok := m.GetKind().(*Operation_Delete); ok {
+		return x.Delete
+	}
+	return nil
+}
+
+func (m *Operation) GetGenerate() *GenerateEventOperation {
+	if x, ok := m.GetKind().(*Operation_Generate); ok {
+		return x.Generate
+	}
+	return nil
+}
+
+func (m *Operation) GetFailure() *ApplicationFailure {
+	if x, ok := m.GetKind().(*Operation_Failure); ok {
+		return x.Failure
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*Operation) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _Operation_OneofMarshaler, _Operation_OneofUnmarshaler, _Operation_OneofSizer, []interface{}{
+		(*Operation_Read)(nil),
+		(*Operation_Upsert)(nil),
+		(*Operation_Delete)(nil),
+		(*Operation_Generate)(nil),
+		(*Operation_Failure)(nil),
+	}
+}
+
+func _Operation_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*Operation)
+	// kind
+	switch x := m.Kind.(type) {
+	case *Operation_Read:
+		b.EncodeVarint(1<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Read); err != nil {
+			return err
+		}
+	case *Operation_Upsert:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Upsert); err != nil {
+			return err
+		}
+	case *Operation_Delete:
+		b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Delete); err != nil {
+			return err
+		}
+	case *Operation_Generate:
+		b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Generate); err != nil {
+			return err
+		}
+	case *Operation_Failure:
+		b.EncodeVarint(5<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Failure); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("Operation.Kind has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _Operation_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*Operation)
+	switch tag {
+	case 1: // kind.read
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(ReadOperation)
+		err := b.DecodeMessage(msg)
+		m.Kind = &Operation_Read{msg}
+		return true, err
+	case 2: // kind.upsert
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(UpsertOperation)
+		err := b.DecodeMessage(msg)
+		m.Kind = &Operation_Upsert{msg}
+		return true, err
+	case 3: // kind.delete
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(DeleteOperation)
+		err := b.DecodeMessage(msg)
+		m.Kind = &Operation_Delete{msg}
+		return true, err
+	case 4: // kind.generate
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(GenerateEventOperation)
+		err := b.DecodeMessage(msg)
+		m.Kind = &Operation_Generate{msg}
+		return true, err
+	case 5: // kind.failure
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(ApplicationFailure)
+		err := b.DecodeMessage(msg)
+		m.Kind = &Operation_Failure{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _Operation_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*Operation)
+	// kind
+	switch x := m.Kind.(type) {
+	case *Operation_Read:
+		s := proto.Size(x.Read)
+		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Operation_Upsert:
+		s := proto.Size(x.Upsert)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Operation_Delete:
+		s := proto.Size(x.Delete)
+		n += proto.SizeVarint(3<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Operation_Generate:
+		s := proto.Size(x.Generate)
+		n += proto.SizeVarint(4<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Operation_Failure:
+		s := proto.Size(x.Failure)
+		n += proto.SizeVarint(5<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type ReadOperation struct {
+	Path *Path `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+}
+
+func (m *ReadOperation) Reset()                    { *m = ReadOperation{} }
+func (m *ReadOperation) String() string            { return proto.CompactTextString(m) }
+func (*ReadOperation) ProtoMessage()               {}
+func (*ReadOperation) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+
+func (m *ReadOperation) GetPath() *Path {
+	if m != nil {
+		return m.Path
+	}
+	return nil
+}
+
+type UpsertOperation struct {
+	Data *Data `protobuf:"bytes,1,opt,name=data" json:"data,omitempty"`
+}
+
+func (m *UpsertOperation) Reset()                    { *m = UpsertOperation{} }
+func (m *UpsertOperation) String() string            { return proto.CompactTextString(m) }
+func (*UpsertOperation) ProtoMessage()               {}
+func (*UpsertOperation) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
+
+func (m *UpsertOperation) GetData() *Data {
+	if m != nil {
+		return m.Data
+	}
+	return nil
+}
+
+type DeleteOperation struct {
+	Path *Path `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+}
+
+func (m *DeleteOperation) Reset()                    { *m = DeleteOperation{} }
+func (m *DeleteOperation) String() string            { return proto.CompactTextString(m) }
+func (*DeleteOperation) ProtoMessage()               {}
+func (*DeleteOperation) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+
+func (m *DeleteOperation) GetPath() *Path {
+	if m != nil {
+		return m.Path
+	}
+	return nil
+}
+
+type GenerateEventOperation struct {
+	Event *Event `protobuf:"bytes,1,opt,name=event" json:"event,omitempty"`
+}
+
+func (m *GenerateEventOperation) Reset()                    { *m = GenerateEventOperation{} }
+func (m *GenerateEventOperation) String() string            { return proto.CompactTextString(m) }
+func (*GenerateEventOperation) ProtoMessage()               {}
+func (*GenerateEventOperation) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
+
+func (m *GenerateEventOperation) GetEvent() *Event {
+	if m != nil {
+		return m.Event
+	}
+	return nil
+}
+
+// To be used automatically in case of runtime errors (usually bugs)
+type ApplicationFailure struct {
+	Reason string `protobuf:"bytes,1,opt,name=reason" json:"reason,omitempty"`
+}
+
+func (m *ApplicationFailure) Reset()                    { *m = ApplicationFailure{} }
+func (m *ApplicationFailure) String() string            { return proto.CompactTextString(m) }
+func (*ApplicationFailure) ProtoMessage()               {}
+func (*ApplicationFailure) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+
+func (m *ApplicationFailure) GetReason() string {
+	if m != nil {
+		return m.Reason
+	}
+	return ""
+}
+
+// A Event object may model a command (action to executed) or a proper event (action happened in the past)
 type Event struct {
-	Name    string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Payload []byte `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+	Group   string `protobuf:"bytes,1,opt,name=group" json:"group,omitempty"`
+	Name    string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	Payload []byte `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	// Client identifier is used to match the logged Event with a Transaction in case of fast-path processing
+	ClientIdentifier string `protobuf:"bytes,4,opt,name=client_identifier,json=clientIdentifier" json:"client_identifier,omitempty"`
+	// Client version should be made visible to client API
+	ClientVersion string `protobuf:"bytes,5,opt,name=client_version,json=clientVersion" json:"client_version,omitempty"`
+	// Types that are valid to be assigned to Status:
+	//	*Event_Version
+	//	*Event_Empty
+	Status isEvent_Status `protobuf_oneof:"status"`
 }
 
 func (m *Event) Reset()                    { *m = Event{} }
 func (m *Event) String() string            { return proto.CompactTextString(m) }
 func (*Event) ProtoMessage()               {}
-func (*Event) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+func (*Event) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
+
+type isEvent_Status interface {
+	isEvent_Status()
+}
+
+type Event_Version struct {
+	Version int64 `protobuf:"varint,6,opt,name=version,oneof"`
+}
+type Event_Empty struct {
+	Empty *google_protobuf1.Empty `protobuf:"bytes,7,opt,name=empty,oneof"`
+}
+
+func (*Event_Version) isEvent_Status() {}
+func (*Event_Empty) isEvent_Status()   {}
+
+func (m *Event) GetStatus() isEvent_Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+func (m *Event) GetGroup() string {
+	if m != nil {
+		return m.Group
+	}
+	return ""
+}
 
 func (m *Event) GetName() string {
 	if m != nil {
@@ -74,18 +427,164 @@ func (m *Event) GetPayload() []byte {
 	return nil
 }
 
-type Empty struct {
+func (m *Event) GetClientIdentifier() string {
+	if m != nil {
+		return m.ClientIdentifier
+	}
+	return ""
 }
 
-func (m *Empty) Reset()                    { *m = Empty{} }
-func (m *Empty) String() string            { return proto.CompactTextString(m) }
-func (*Empty) ProtoMessage()               {}
-func (*Empty) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+func (m *Event) GetClientVersion() string {
+	if m != nil {
+		return m.ClientVersion
+	}
+	return ""
+}
+
+func (m *Event) GetVersion() int64 {
+	if x, ok := m.GetStatus().(*Event_Version); ok {
+		return x.Version
+	}
+	return 0
+}
+
+func (m *Event) GetEmpty() *google_protobuf1.Empty {
+	if x, ok := m.GetStatus().(*Event_Empty); ok {
+		return x.Empty
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*Event) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _Event_OneofMarshaler, _Event_OneofUnmarshaler, _Event_OneofSizer, []interface{}{
+		(*Event_Version)(nil),
+		(*Event_Empty)(nil),
+	}
+}
+
+func _Event_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*Event)
+	// status
+	switch x := m.Status.(type) {
+	case *Event_Version:
+		b.EncodeVarint(6<<3 | proto.WireVarint)
+		b.EncodeVarint(uint64(x.Version))
+	case *Event_Empty:
+		b.EncodeVarint(7<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Empty); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("Event.Status has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _Event_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*Event)
+	switch tag {
+	case 6: // status.version
+		if wire != proto.WireVarint {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeVarint()
+		m.Status = &Event_Version{int64(x)}
+		return true, err
+	case 7: // status.empty
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(google_protobuf1.Empty)
+		err := b.DecodeMessage(msg)
+		m.Status = &Event_Empty{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _Event_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*Event)
+	// status
+	switch x := m.Status.(type) {
+	case *Event_Version:
+		n += proto.SizeVarint(6<<3 | proto.WireVarint)
+		n += proto.SizeVarint(uint64(x.Version))
+	case *Event_Empty:
+		s := proto.Size(x.Empty)
+		n += proto.SizeVarint(7<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+// A path in the projection store
+type Path struct {
+	Path    string `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+	Version int64  `protobuf:"varint,2,opt,name=version" json:"version,omitempty"`
+}
+
+func (m *Path) Reset()                    { *m = Path{} }
+func (m *Path) String() string            { return proto.CompactTextString(m) }
+func (*Path) ProtoMessage()               {}
+func (*Path) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
+
+func (m *Path) GetPath() string {
+	if m != nil {
+		return m.Path
+	}
+	return ""
+}
+
+func (m *Path) GetVersion() int64 {
+	if m != nil {
+		return m.Version
+	}
+	return 0
+}
+
+// The object contained in a specific Path
+type Data struct {
+	Path    *Path                   `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+	Content *google_protobuf.Struct `protobuf:"bytes,3,opt,name=content" json:"content,omitempty"`
+}
+
+func (m *Data) Reset()                    { *m = Data{} }
+func (m *Data) String() string            { return proto.CompactTextString(m) }
+func (*Data) ProtoMessage()               {}
+func (*Data) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{9} }
+
+func (m *Data) GetPath() *Path {
+	if m != nil {
+		return m.Path
+	}
+	return nil
+}
+
+func (m *Data) GetContent() *google_protobuf.Struct {
+	if m != nil {
+		return m.Content
+	}
+	return nil
+}
 
 func init() {
-	proto.RegisterType((*ObserverStatus)(nil), "service.ObserverStatus")
+	proto.RegisterType((*Transaction)(nil), "service.Transaction")
+	proto.RegisterType((*Operation)(nil), "service.Operation")
+	proto.RegisterType((*ReadOperation)(nil), "service.ReadOperation")
+	proto.RegisterType((*UpsertOperation)(nil), "service.UpsertOperation")
+	proto.RegisterType((*DeleteOperation)(nil), "service.DeleteOperation")
+	proto.RegisterType((*GenerateEventOperation)(nil), "service.GenerateEventOperation")
+	proto.RegisterType((*ApplicationFailure)(nil), "service.ApplicationFailure")
 	proto.RegisterType((*Event)(nil), "service.Event")
-	proto.RegisterType((*Empty)(nil), "service.Empty")
+	proto.RegisterType((*Path)(nil), "service.Path")
+	proto.RegisterType((*Data)(nil), "service.Data")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -99,8 +598,14 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for DataMesh service
 
 type DataMeshClient interface {
-	Push(ctx context.Context, in *Event, opts ...grpc.CallOption) (*Empty, error)
-	Observe(ctx context.Context, in *ObserverStatus, opts ...grpc.CallOption) (DataMesh_ObserveClient, error)
+	// Used to push a event that will be stored on the event log.
+	Push(ctx context.Context, in *Event, opts ...grpc.CallOption) (*google_protobuf1.Empty, error)
+	// Allows to pass a transaction related to a event before it's explicitly requested.
+	FastProcess(ctx context.Context, in *Transaction, opts ...grpc.CallOption) (*google_protobuf1.Empty, error)
+	// The server sends events that need to be processed. The client reply with the corresponding transactions.
+	Process(ctx context.Context, opts ...grpc.CallOption) (DataMesh_ProcessClient, error)
+	// Used by the client to query the projections.
+	Read(ctx context.Context, in *Path, opts ...grpc.CallOption) (*Data, error)
 }
 
 type dataMeshClient struct {
@@ -111,8 +616,8 @@ func NewDataMeshClient(cc *grpc.ClientConn) DataMeshClient {
 	return &dataMeshClient{cc}
 }
 
-func (c *dataMeshClient) Push(ctx context.Context, in *Event, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
+func (c *dataMeshClient) Push(ctx context.Context, in *Event, opts ...grpc.CallOption) (*google_protobuf1.Empty, error) {
+	out := new(google_protobuf1.Empty)
 	err := grpc.Invoke(ctx, "/service.DataMesh/Push", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -120,31 +625,39 @@ func (c *dataMeshClient) Push(ctx context.Context, in *Event, opts ...grpc.CallO
 	return out, nil
 }
 
-func (c *dataMeshClient) Observe(ctx context.Context, in *ObserverStatus, opts ...grpc.CallOption) (DataMesh_ObserveClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_DataMesh_serviceDesc.Streams[0], c.cc, "/service.DataMesh/Observe", opts...)
+func (c *dataMeshClient) FastProcess(ctx context.Context, in *Transaction, opts ...grpc.CallOption) (*google_protobuf1.Empty, error) {
+	out := new(google_protobuf1.Empty)
+	err := grpc.Invoke(ctx, "/service.DataMesh/FastProcess", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &dataMeshObserveClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
+	return out, nil
+}
+
+func (c *dataMeshClient) Process(ctx context.Context, opts ...grpc.CallOption) (DataMesh_ProcessClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_DataMesh_serviceDesc.Streams[0], c.cc, "/service.DataMesh/Process", opts...)
+	if err != nil {
 		return nil, err
 	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
+	x := &dataMeshProcessClient{stream}
 	return x, nil
 }
 
-type DataMesh_ObserveClient interface {
+type DataMesh_ProcessClient interface {
+	Send(*Transaction) error
 	Recv() (*Event, error)
 	grpc.ClientStream
 }
 
-type dataMeshObserveClient struct {
+type dataMeshProcessClient struct {
 	grpc.ClientStream
 }
 
-func (x *dataMeshObserveClient) Recv() (*Event, error) {
+func (x *dataMeshProcessClient) Send(m *Transaction) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *dataMeshProcessClient) Recv() (*Event, error) {
 	m := new(Event)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -152,11 +665,26 @@ func (x *dataMeshObserveClient) Recv() (*Event, error) {
 	return m, nil
 }
 
+func (c *dataMeshClient) Read(ctx context.Context, in *Path, opts ...grpc.CallOption) (*Data, error) {
+	out := new(Data)
+	err := grpc.Invoke(ctx, "/service.DataMesh/Read", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for DataMesh service
 
 type DataMeshServer interface {
-	Push(context.Context, *Event) (*Empty, error)
-	Observe(*ObserverStatus, DataMesh_ObserveServer) error
+	// Used to push a event that will be stored on the event log.
+	Push(context.Context, *Event) (*google_protobuf1.Empty, error)
+	// Allows to pass a transaction related to a event before it's explicitly requested.
+	FastProcess(context.Context, *Transaction) (*google_protobuf1.Empty, error)
+	// The server sends events that need to be processed. The client reply with the corresponding transactions.
+	Process(DataMesh_ProcessServer) error
+	// Used by the client to query the projections.
+	Read(context.Context, *Path) (*Data, error)
 }
 
 func RegisterDataMeshServer(s *grpc.Server, srv DataMeshServer) {
@@ -181,25 +709,66 @@ func _DataMesh_Push_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DataMesh_Observe_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(ObserverStatus)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
+func _DataMesh_FastProcess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Transaction)
+	if err := dec(in); err != nil {
+		return nil, err
 	}
-	return srv.(DataMeshServer).Observe(m, &dataMeshObserveServer{stream})
+	if interceptor == nil {
+		return srv.(DataMeshServer).FastProcess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.DataMesh/FastProcess",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataMeshServer).FastProcess(ctx, req.(*Transaction))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
-type DataMesh_ObserveServer interface {
+func _DataMesh_Process_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DataMeshServer).Process(&dataMeshProcessServer{stream})
+}
+
+type DataMesh_ProcessServer interface {
 	Send(*Event) error
+	Recv() (*Transaction, error)
 	grpc.ServerStream
 }
 
-type dataMeshObserveServer struct {
+type dataMeshProcessServer struct {
 	grpc.ServerStream
 }
 
-func (x *dataMeshObserveServer) Send(m *Event) error {
+func (x *dataMeshProcessServer) Send(m *Event) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func (x *dataMeshProcessServer) Recv() (*Transaction, error) {
+	m := new(Transaction)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _DataMesh_Read_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Path)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataMeshServer).Read(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.DataMesh/Read",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataMeshServer).Read(ctx, req.(*Path))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 var _DataMesh_serviceDesc = grpc.ServiceDesc{
@@ -210,12 +779,21 @@ var _DataMesh_serviceDesc = grpc.ServiceDesc{
 			MethodName: "Push",
 			Handler:    _DataMesh_Push_Handler,
 		},
+		{
+			MethodName: "FastProcess",
+			Handler:    _DataMesh_FastProcess_Handler,
+		},
+		{
+			MethodName: "Read",
+			Handler:    _DataMesh_Read_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Observe",
-			Handler:       _DataMesh_Observe_Handler,
+			StreamName:    "Process",
+			Handler:       _DataMesh_Process_Handler,
 			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "service/datamesh.proto",
@@ -224,18 +802,44 @@ var _DataMesh_serviceDesc = grpc.ServiceDesc{
 func init() { proto.RegisterFile("service/datamesh.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 197 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0x2b, 0x4e, 0x2d, 0x2a,
-	0xcb, 0x4c, 0x4e, 0xd5, 0x4f, 0x49, 0x2c, 0x49, 0xcc, 0x4d, 0x2d, 0xce, 0xd0, 0x2b, 0x28, 0xca,
-	0x2f, 0xc9, 0x17, 0x62, 0x87, 0x8a, 0x2b, 0x69, 0x71, 0xf1, 0xf9, 0x27, 0x81, 0x38, 0xa9, 0x45,
-	0xc1, 0x25, 0x89, 0x25, 0xa5, 0xc5, 0x42, 0x12, 0x5c, 0xec, 0x65, 0xa9, 0x45, 0xc5, 0x99, 0xf9,
-	0x79, 0x12, 0x8c, 0x0a, 0x8c, 0x1a, 0xcc, 0x41, 0x30, 0xae, 0x92, 0x29, 0x17, 0xab, 0x6b, 0x59,
-	0x6a, 0x5e, 0x89, 0x90, 0x10, 0x17, 0x4b, 0x5e, 0x62, 0x6e, 0x2a, 0x58, 0x9e, 0x33, 0x08, 0xcc,
-	0x06, 0x69, 0x2b, 0x48, 0xac, 0xcc, 0xc9, 0x4f, 0x4c, 0x91, 0x60, 0x52, 0x60, 0xd4, 0xe0, 0x09,
-	0x82, 0x71, 0x95, 0xd8, 0xb9, 0x58, 0x5d, 0x73, 0x0b, 0x4a, 0x2a, 0x8d, 0x72, 0xb8, 0x38, 0x5c,
-	0x12, 0x4b, 0x12, 0x7d, 0x53, 0x8b, 0x33, 0x84, 0x34, 0xb8, 0x58, 0x02, 0x4a, 0x8b, 0x33, 0x84,
-	0xf8, 0xf4, 0xa0, 0x2e, 0xd1, 0x03, 0x1b, 0x2d, 0x85, 0xc4, 0x07, 0xe9, 0x51, 0x62, 0x10, 0x32,
-	0xe3, 0x62, 0x87, 0xba, 0x50, 0x48, 0x1c, 0x2e, 0x89, 0xea, 0x66, 0x29, 0x34, 0x53, 0x94, 0x18,
-	0x0c, 0x18, 0x93, 0xd8, 0xc0, 0x3e, 0x35, 0x06, 0x04, 0x00, 0x00, 0xff, 0xff, 0x27, 0x07, 0x98,
-	0x86, 0x03, 0x01, 0x00, 0x00,
+	// 617 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x94, 0xcf, 0x6e, 0xd3, 0x40,
+	0x10, 0xc6, 0xe3, 0xc6, 0x89, 0x9b, 0x09, 0x2d, 0x30, 0xaa, 0x82, 0x15, 0x0e, 0xb4, 0x16, 0xa0,
+	0x48, 0x54, 0x49, 0x09, 0x45, 0x9c, 0x8a, 0x44, 0xd5, 0x96, 0x72, 0x40, 0x54, 0xcb, 0x9f, 0x13,
+	0x12, 0xda, 0xda, 0xd3, 0xc4, 0x6a, 0x6a, 0x5b, 0xbb, 0xeb, 0x4a, 0x7d, 0x1c, 0x5e, 0x8b, 0xf7,
+	0xe0, 0x8e, 0x76, 0xd7, 0x5e, 0x25, 0x69, 0xa9, 0x72, 0x8b, 0xe7, 0xfb, 0x7e, 0x19, 0xef, 0x7c,
+	0x3b, 0x86, 0x9e, 0x24, 0x71, 0x9d, 0xc6, 0x34, 0x4a, 0xb8, 0xe2, 0x57, 0x24, 0xa7, 0xc3, 0x42,
+	0xe4, 0x2a, 0xc7, 0xa0, 0xaa, 0xf7, 0xa3, 0x29, 0x8f, 0x2f, 0xe5, 0x68, 0x92, 0xe7, 0x93, 0x19,
+	0x8d, 0x8c, 0x78, 0x5e, 0x5e, 0x8c, 0xa4, 0x12, 0x65, 0xac, 0xac, 0xb9, 0xbf, 0x73, 0xb7, 0x87,
+	0xae, 0x0a, 0x75, 0x63, 0x2d, 0xd1, 0x04, 0xba, 0xdf, 0x04, 0xcf, 0x24, 0x8f, 0x55, 0x9a, 0x67,
+	0xf8, 0x1c, 0x5a, 0x74, 0x4d, 0x99, 0x0a, 0xbd, 0x6d, 0x6f, 0xd0, 0x1d, 0x6f, 0x0e, 0xab, 0x76,
+	0xc3, 0x63, 0x5d, 0x65, 0x56, 0xc4, 0x31, 0x40, 0x5e, 0x90, 0xe0, 0x1a, 0x91, 0xe1, 0xda, 0x76,
+	0x73, 0xd0, 0x1d, 0xa3, 0xb3, 0x7e, 0xa9, 0x25, 0x36, 0xe7, 0x8a, 0x7e, 0xaf, 0x41, 0xc7, 0x29,
+	0xb8, 0x0b, 0xbe, 0x20, 0x9e, 0x54, 0x6d, 0x7a, 0x8e, 0x65, 0xc4, 0x13, 0xe7, 0x3a, 0x6d, 0x30,
+	0xe3, 0xc2, 0x31, 0xb4, 0xcb, 0x42, 0x92, 0x50, 0xe1, 0x9a, 0xf1, 0x87, 0xce, 0xff, 0xdd, 0x94,
+	0xe7, 0x89, 0xca, 0xa9, 0x99, 0x84, 0x66, 0xa4, 0x28, 0x6c, 0x2e, 0x31, 0x47, 0xa6, 0xbc, 0xc0,
+	0x58, 0x27, 0x1e, 0xc0, 0xfa, 0x84, 0x32, 0x5d, 0xa7, 0xd0, 0x37, 0xd4, 0x33, 0x47, 0x7d, 0xac,
+	0x04, 0x33, 0x88, 0x79, 0xd8, 0x21, 0xf8, 0x0e, 0x82, 0x0b, 0x9e, 0xce, 0x4a, 0x41, 0x61, 0xcb,
+	0xd0, 0x4f, 0x1d, 0xfd, 0xa1, 0x28, 0x66, 0x69, 0x6c, 0x90, 0x13, 0x6b, 0x39, 0x6d, 0xb0, 0xda,
+	0x7d, 0xd8, 0x06, 0xff, 0x32, 0xcd, 0x92, 0x68, 0x0c, 0x1b, 0x0b, 0x03, 0xc0, 0x1d, 0xf0, 0x0b,
+	0xae, 0xa6, 0xd5, 0x98, 0x36, 0xdc, 0xdf, 0x9d, 0x71, 0x35, 0x65, 0x46, 0x8a, 0xf6, 0xe1, 0xe1,
+	0xd2, 0x10, 0x34, 0xa5, 0x6f, 0xcd, 0x2d, 0xea, 0x88, 0x2b, 0xce, 0x8c, 0xa4, 0xa9, 0xa5, 0x31,
+	0xac, 0xd2, 0xeb, 0x3d, 0xf4, 0xee, 0x1e, 0xc3, 0x6a, 0xf7, 0x26, 0xda, 0x05, 0xbc, 0x3d, 0x08,
+	0xec, 0x41, 0x5b, 0x10, 0x97, 0x79, 0x66, 0xe0, 0x0e, 0xab, 0x9e, 0xa2, 0xbf, 0x1e, 0xb4, 0x0c,
+	0x8e, 0x5b, 0xd0, 0x9a, 0x88, 0xbc, 0x2c, 0x2a, 0x83, 0x7d, 0x40, 0x04, 0x3f, 0xe3, 0x57, 0x64,
+	0xee, 0x44, 0x87, 0x99, 0xdf, 0x18, 0x42, 0x50, 0xf0, 0x9b, 0x59, 0xce, 0x13, 0x13, 0xfb, 0x03,
+	0x56, 0x3f, 0xe2, 0x2b, 0x78, 0x1c, 0xcf, 0x52, 0xca, 0xd4, 0xaf, 0x34, 0xa1, 0x4c, 0xa5, 0x17,
+	0x29, 0x09, 0x13, 0x72, 0x87, 0x3d, 0xb2, 0xc2, 0x27, 0x57, 0xc7, 0x17, 0xb0, 0x59, 0x99, 0xaf,
+	0x49, 0xc8, 0x34, 0xcf, 0x4c, 0xa0, 0x1d, 0xb6, 0x61, 0xab, 0x3f, 0x6c, 0x11, 0xfb, 0x10, 0xd4,
+	0x7a, 0x7b, 0xdb, 0x1b, 0x34, 0x75, 0xa6, 0x55, 0x01, 0x87, 0xd0, 0x32, 0x7b, 0x16, 0x06, 0xd5,
+	0x15, 0xb7, 0x5b, 0x38, 0xac, 0xb7, 0x70, 0x78, 0xac, 0xd5, 0xd3, 0x06, 0xb3, 0xb6, 0xc3, 0x75,
+	0x68, 0x4b, 0xc5, 0x55, 0x29, 0xa3, 0x7d, 0xf0, 0xf5, 0xcc, 0xf5, 0xf9, 0x5c, 0x20, 0x1d, 0x9b,
+	0x80, 0x3e, 0x5f, 0xdd, 0x51, 0x1f, 0xbb, 0xe9, 0xfa, 0x45, 0x3f, 0xc1, 0xd7, 0xf9, 0xae, 0x10,
+	0x23, 0xbe, 0x86, 0x20, 0xce, 0x33, 0xa5, 0xe3, 0xb2, 0xbb, 0xf1, 0xe4, 0xd6, 0xcb, 0x7d, 0x35,
+	0x9f, 0x11, 0x56, 0xfb, 0xc6, 0x7f, 0x3c, 0x58, 0xd7, 0x7f, 0xff, 0x99, 0xe4, 0x14, 0xf7, 0xc0,
+	0x3f, 0x2b, 0xe5, 0x14, 0x97, 0x52, 0xee, 0xff, 0xe7, 0x8c, 0x51, 0x03, 0x0f, 0xa0, 0x7b, 0xc2,
+	0xa5, 0x3a, 0x13, 0x79, 0x4c, 0x52, 0xe2, 0x96, 0x03, 0xe7, 0xbe, 0x3d, 0xf7, 0xe0, 0x6f, 0x21,
+	0xb8, 0x1f, 0x5d, 0x7a, 0x93, 0xa8, 0x31, 0xf0, 0xf6, 0x3c, 0x7c, 0x09, 0xbe, 0x5e, 0x27, 0x5c,
+	0x1c, 0x42, 0x7f, 0x71, 0x21, 0xa2, 0xc6, 0x79, 0xdb, 0x34, 0x7c, 0xf3, 0x2f, 0x00, 0x00, 0xff,
+	0xff, 0xce, 0xf0, 0x16, 0xf9, 0x74, 0x05, 0x00, 0x00,
 }

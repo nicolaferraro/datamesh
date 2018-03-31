@@ -2,29 +2,94 @@ syntax = "proto3";
 
 package service;
 
+import "hacks/google/protobuf/struct.proto";
+import "hacks/google/protobuf/empty.proto";
+
+// The DataMesh interface for all exposed services.
 service DataMesh {
 
-  rpc Push(Event) returns (Empty) {}
+    // Used to push a event that will be stored on the event log.
+    rpc Push (Event) returns (google.protobuf.Empty) {
+    }
 
-  rpc Observe(ObserverStatus) returns (stream Event) {}
+    // Allows to pass a transaction related to a event before it's explicitly requested.
+    rpc FastProcess (Transaction) returns (google.protobuf.Empty) {
+    }
 
-  rpc Compute(stream Computation) returns (stream Event) {}
+    // The server sends events that need to be processed. The client reply with the corresponding transactions.
+    rpc Process (stream Transaction) returns (stream Event) {
+    }
 
+    // Used by the client to query the projections.
+    rpc Read (Path) returns (Data) {
+    }
 }
 
-message ObserverStatus {
-  int64   version   = 1;
+// A transaction is a sequence of operation triggered by a event.
+message Transaction {
+    // The trigger
+    Event               event       = 1;
+    // The operations
+    repeated Operation  operations  = 2;
 }
 
-message Computation {
-  // TBD
+message Operation {
+    oneof kind {
+        ReadOperation           read        = 1;
+        UpsertOperation         upsert      = 2;
+        DeleteOperation         delete      = 3;
+        // A transaction may generate other events if accepted
+        GenerateEventOperation  generate    = 4;
+        // The list of operations may correspond to a singleton ApplicationFailure (usually a bug in the code)
+        ApplicationFailure      failure     = 5;
+    }
 }
 
+message ReadOperation {
+    Path    path    = 1;
+}
+
+message UpsertOperation {
+    Data    data    = 1;
+}
+
+message DeleteOperation {
+    Path    path    = 1;
+}
+
+message GenerateEventOperation {
+    Event   event   = 1;
+}
+
+// To be used automatically in case of runtime errors (usually bugs)
+message ApplicationFailure {
+    string  reason  = 1;
+}
+
+// A Event object may model a command (action to executed) or a proper event (action happened in the past)
 message Event {
-  string  name    = 1;
-  bytes   payload = 2;
+    string  group               = 1;
+    string  name                = 2;
+    bytes   payload             = 3;
+    // Client identifier is used to match the logged Event with a Transaction in case of fast-path processing
+    string  client_identifier   = 4;
+    // Client version should be made visible to client API
+    string  client_version      = 5;
+    oneof status {
+        // Event may have a version if stored in the event log
+        int64                   version = 6;
+        google.protobuf.Empty   empty   = 7;
+    }
 }
 
-message Empty {
+// A path in the projection store
+message Path {
+    string  path    = 1;
+    int64   version = 2;
+}
 
+// The object contained in a specific Path
+message Data {
+    Path                    path    = 1;
+    google.protobuf.Struct  content = 3;
 }
