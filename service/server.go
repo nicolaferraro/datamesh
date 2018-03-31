@@ -10,12 +10,6 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 )
 
-/*
-type DataMeshServer interface {
-	Push(context.Context, *Event) (*Empty, error)
-}
-*/
-
 
 type DefaultDataMeshServer struct {
 	port     		int
