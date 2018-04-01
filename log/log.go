@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"path"
 	"io"
+	"github.com/nicolaferraro/datamesh/protobuf"
+	"github.com/golang/protobuf/proto"
 )
 
 const (
@@ -54,10 +56,15 @@ func (log *Log) Append(data []byte) (uint64, error) {
 }
 
 /*
- * implements utils.MessageObserver
+ * implements common.MessageObserver
  */
-func (log *Log) Accept(data []byte) error {
-	_, err := log.Append(data)
+func (log *Log) Accept(evt *protobuf.Event) error {
+	msg, err := proto.Marshal(evt)
+	if err != nil {
+		return err
+	}
+
+	_, err = log.Append(msg)
 	return err
 }
 

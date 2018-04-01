@@ -5,49 +5,45 @@ import (
 	"google.golang.org/grpc"
 	"fmt"
 	"net"
-	"github.com/nicolaferraro/datamesh/common"
-	"github.com/golang/protobuf/proto"
+	"github.com/nicolaferraro/datamesh/protobuf"
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/nicolaferraro/datamesh/common"
 )
 
 
 type DefaultDataMeshServer struct {
 	port     		int
-	observer		common.MessageObserver
+	observer		common.EventObserver
 	grpcServer 		*grpc.Server
 }
 
-func NewDefaultDataMeshServer(port int, observer common.MessageObserver) *DefaultDataMeshServer {
+func NewDefaultDataMeshServer(port int, observer common.EventObserver) *DefaultDataMeshServer {
 	return &DefaultDataMeshServer{
 		port: port,
 		observer: observer,
 	}
 }
 
-func (srv *DefaultDataMeshServer) Push(ctx context.Context, evt *Event) (*empty.Empty, error) {
-	msg, err := proto.Marshal(evt)
-	if err != nil {
-		return nil, err
-	}
-	if err = srv.observer.Accept(msg); err != nil {
+func (srv *DefaultDataMeshServer) Push(ctx context.Context, evt *protobuf.Event) (*empty.Empty, error) {
+	if err := srv.observer.Accept(evt); err != nil {
 		return nil, err
 	}
 	return &empty.Empty{}, nil
 }
 
 
-func (srv *DefaultDataMeshServer) FastProcess(context.Context, *Transaction) (*empty.Empty, error) {
+func (srv *DefaultDataMeshServer) FastProcess(context.Context, *protobuf.Transaction) (*empty.Empty, error) {
 	// TBD
 	return &empty.Empty{}, nil
 }
 
 
-func (srv *DefaultDataMeshServer) Process(DataMesh_ProcessServer) error {
+func (srv *DefaultDataMeshServer) Process(protobuf.DataMesh_ProcessServer) error {
 	// TBD
 	return nil
 }
 
-func (srv *DefaultDataMeshServer) Read(context.Context, *Path) (*Data, error) {
+func (srv *DefaultDataMeshServer) Read(context.Context, *protobuf.Path) (*protobuf.Data, error) {
 	// TBD
 	return nil, nil
 }
@@ -59,7 +55,7 @@ func (srv *DefaultDataMeshServer) Start() error {
 	}
 
 	srv.grpcServer = grpc.NewServer()
-	RegisterDataMeshServer(srv.grpcServer, srv)
+	protobuf.RegisterDataMeshServer(srv.grpcServer, srv)
 	srv.grpcServer.Serve(lis)
 	return nil
 }

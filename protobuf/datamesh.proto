@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package service;
+package protobuf;
 
 import "hacks/google/protobuf/struct.proto";
 import "hacks/google/protobuf/empty.proto";

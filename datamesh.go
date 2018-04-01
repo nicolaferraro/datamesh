@@ -8,6 +8,7 @@ import (
 	"os"
 	"github.com/nicolaferraro/datamesh/service"
 	"context"
+	"github.com/nicolaferraro/datamesh/protobuf"
 )
 
 func main() {
@@ -52,7 +53,7 @@ func main() {
 				fmt.Printf("Error. Syntax: datamesh client push <eventName> <eventPayload>\n")
 				os.Exit(1)
 			}
-			event := service.Event{
+			event := protobuf.Event{
 				Name: flag.Arg(2),
 				Payload: []byte(flag.Arg(3)),
 			}
