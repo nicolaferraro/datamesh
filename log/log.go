@@ -8,6 +8,7 @@ import (
 	"io"
 	"github.com/nicolaferraro/datamesh/protobuf"
 	"github.com/golang/protobuf/proto"
+	"github.com/nicolaferraro/datamesh/common"
 )
 
 const (
@@ -22,11 +23,13 @@ type Log struct {
 	directory	string
 	file		*os.File
 	entries		uint64
+	Cache		*LogCache
 }
 
 func NewLog(directory string) (*Log, error) {
 	log := &Log{
 		directory: directory,
+		Cache: NewLogCache(),
 	}
 
 	if err := log.init(); err != nil {
@@ -56,9 +59,9 @@ func (log *Log) Append(data []byte) (uint64, error) {
 }
 
 /*
- * implements common.MessageObserver
+ * Implements common.EventConsumer
  */
-func (log *Log) Accept(evt *protobuf.Event) error {
+func (log *Log) Consume(evt *protobuf.Event) error {
 	msg, err := proto.Marshal(evt)
 	if err != nil {
 		return err
@@ -66,6 +69,17 @@ func (log *Log) Accept(evt *protobuf.Event) error {
 
 	_, err = log.Append(msg)
 	return err
+}
+
+/*
+ * Implements common.Observer
+ */
+func (log *Log) OnNotification(notification common.Notification) error {
+	if notification.Type == common.NotificationTypeProjectionVersion {
+		version := notification.Payload.(int64)
+		log.Cache.Prune(version)
+	}
+	return nil
 }
 
 func (log *Log) Sync() error {

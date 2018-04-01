@@ -13,19 +13,19 @@ import (
 
 type DefaultDataMeshServer struct {
 	port     		int
-	observer		common.EventObserver
+	consumer		common.EventConsumer
 	grpcServer 		*grpc.Server
 }
 
-func NewDefaultDataMeshServer(port int, observer common.EventObserver) *DefaultDataMeshServer {
+func NewDefaultDataMeshServer(port int, consumer common.EventConsumer) *DefaultDataMeshServer {
 	return &DefaultDataMeshServer{
 		port: port,
-		observer: observer,
+		consumer: consumer,
 	}
 }
 
 func (srv *DefaultDataMeshServer) Push(ctx context.Context, evt *protobuf.Event) (*empty.Empty, error) {
-	if err := srv.observer.Accept(evt); err != nil {
+	if err := srv.consumer.Consume(evt); err != nil {
 		return nil, err
 	}
 	return &empty.Empty{}, nil

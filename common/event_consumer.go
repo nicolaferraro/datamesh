@@ -2,8 +2,8 @@ package common
 
 import "github.com/nicolaferraro/datamesh/protobuf"
 
-type EventObserver interface {
+type EventConsumer interface {
 
-	Accept(*protobuf.Event) 	error
+	Consume(*protobuf.Event) 	error
 
 }

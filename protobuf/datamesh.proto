@@ -75,11 +75,8 @@ message Event {
     string  client_identifier   = 4;
     // Client version should be made visible to client API
     string  client_version      = 5;
-    oneof status {
-        // Event may have a version if stored in the event log
-        int64                   version = 6;
-        google.protobuf.Empty   empty   = 7;
-    }
+    // Version is meaningful only when event is stored (0 before)
+    int64   version             = 6;
 }
 
 // A path in the projection store
