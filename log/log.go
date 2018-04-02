@@ -67,6 +67,10 @@ func (log *Log) Consume(evt *protobuf.Event) error {
 		return err
 	}
 
+	if err = log.Cache.Accept(evt); err != nil {
+		return err
+	}
+
 	_, err = log.Append(msg)
 	return err
 }
