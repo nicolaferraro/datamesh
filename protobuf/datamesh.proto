@@ -76,13 +76,13 @@ message Event {
     // Client version should be made visible to client API
     string  client_version      = 5;
     // Version is meaningful only when event is stored (0 before)
-    int64   version             = 6;
+    uint64  version             = 6;
 }
 
 // A path in the projection store
 message Path {
     string  path    = 1;
-    int64   version = 2;
+    uint64  version = 2;
 }
 
 // The object contained in a specific Path

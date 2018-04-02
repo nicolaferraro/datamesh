@@ -76,7 +76,7 @@ func (log *Log) Consume(evt *protobuf.Event) error {
  */
 func (log *Log) OnNotification(notification common.Notification) error {
 	if notification.Type == common.NotificationTypeProjectionVersion {
-		version := notification.Payload.(int64)
+		version := notification.Payload.(uint64)
 		log.Cache.Prune(version)
 	}
 	return nil

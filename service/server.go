@@ -8,19 +8,27 @@ import (
 	"github.com/nicolaferraro/datamesh/protobuf"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/nicolaferraro/datamesh/common"
+	"github.com/golang/protobuf/ptypes/struct"
+	"github.com/golang/protobuf/jsonpb"
+	"encoding/json"
+	"bytes"
 )
 
 
 type DefaultDataMeshServer struct {
 	port     		int
 	consumer		common.EventConsumer
+	executor		common.TransactionExecutor
+	retriever		common.DataRetriever
 	grpcServer 		*grpc.Server
 }
 
-func NewDefaultDataMeshServer(port int, consumer common.EventConsumer) *DefaultDataMeshServer {
+func NewDefaultDataMeshServer(port int, consumer common.EventConsumer, executor common.TransactionExecutor, retriever common.DataRetriever) *DefaultDataMeshServer {
 	return &DefaultDataMeshServer{
 		port: port,
 		consumer: consumer,
+		executor: executor,
+		retriever: retriever,
 	}
 }
 
@@ -32,8 +40,10 @@ func (srv *DefaultDataMeshServer) Push(ctx context.Context, evt *protobuf.Event)
 }
 
 
-func (srv *DefaultDataMeshServer) FastProcess(context.Context, *protobuf.Transaction) (*empty.Empty, error) {
-	// TBD
+func (srv *DefaultDataMeshServer) FastProcess(ctx context.Context, transaction *protobuf.Transaction) (*empty.Empty, error) {
+	if err := srv.executor.Apply(transaction); err != nil {
+		return nil, err
+	}
 	return &empty.Empty{}, nil
 }
 
@@ -43,9 +53,26 @@ func (srv *DefaultDataMeshServer) Process(protobuf.DataMesh_ProcessServer) error
 	return nil
 }
 
-func (srv *DefaultDataMeshServer) Read(context.Context, *protobuf.Path) (*protobuf.Data, error) {
-	// TBD
-	return nil, nil
+func (srv *DefaultDataMeshServer) Read(ctx context.Context, path *protobuf.Path) (*protobuf.Data, error) {
+	data, err := srv.retriever.Get(path.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	var pbData *structpb.Struct
+	if err = jsonpb.Unmarshal(bytes.NewReader(jsonData), pbData); err != nil {
+		return nil, err
+	}
+
+	return &protobuf.Data{
+		Path: path,
+		Content: pbData,
+	}, nil
 }
 
 func (srv *DefaultDataMeshServer) Start() error {

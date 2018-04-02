@@ -5,6 +5,7 @@ import (
 	"github.com/nicolaferraro/datamesh/projection"
 	"path"
 	"github.com/nicolaferraro/datamesh/service"
+	"github.com/nicolaferraro/datamesh/controller"
 )
 
 const (
@@ -24,7 +25,10 @@ func NewMesh(dir string, port int) (*Mesh, error) {
 		return nil, err
 	}
 	prj := projection.NewProjection()
-	srv := service.NewDefaultDataMeshServer(port, eventLog)
+
+	ctrl := controller.NewController(prj, eventLog)
+
+	srv := service.NewDefaultDataMeshServer(port, eventLog, ctrl, prj)
 
 	return &Mesh{
 		dir: dir,

@@ -20,7 +20,7 @@ func (cache *LogCache) Accept(evt *protobuf.Event) error {
 	return nil
 }
 
-func (cache *LogCache) Prune(version int64) {
+func (cache *LogCache) Prune(version uint64) {
 	var index int
 	events := cache.events
 

@@ -3,30 +3,38 @@ package service
 import (
 	"testing"
 	"golang.org/x/net/context"
-	"github.com/golang/protobuf/proto"
 	"reflect"
 	"github.com/stretchr/testify/assert"
+	"github.com/nicolaferraro/datamesh/protobuf"
 )
 
 const (
 	testDefaultServerPort = 6543
 )
 
-type TestReceiver struct {
-	messages	[][]byte
+type TestStub struct {
+	messages	[]*protobuf.Event
 }
 
-func (r *TestReceiver) Accept(m []byte) error  {
-	r.messages = append(r.messages, m)
+func (r *TestStub) Consume(evt *protobuf.Event) error  {
+	r.messages = append(r.messages, evt)
 	return nil
+}
+
+func (r *TestStub) Apply(transaction *protobuf.Transaction) error {
+	return nil
+}
+
+func (r *TestStub) Get(key string) (interface{}, error) {
+	return nil, nil
 }
 
 func TestDataMeshClientServer(t *testing.T) {
 	ctx := context.Background()
 	defer ctx.Done()
 
-	testReceiver := TestReceiver{}
-	server := NewDefaultDataMeshServer(testDefaultServerPort, &testReceiver)
+	testReceiver := TestStub{}
+	server := NewDefaultDataMeshServer(testDefaultServerPort, &testReceiver, &testReceiver, &testReceiver)
 	go server.Start()
 
 	client, err := NewDataMeshClientConnection("localhost", testDefaultServerPort);
@@ -35,9 +43,9 @@ func TestDataMeshClientServer(t *testing.T) {
 	}
 
 	const num = 5
-	var evts []Event
+	var evts []protobuf.Event
 	for i:=0; i<num; i++ {
-		evt := Event{
+		evt := protobuf.Event{
 			Name: "evt",
 			Payload: []byte{byte(i) + 1,byte(i) + 2, byte(i) + 3},
 		}
@@ -46,13 +54,6 @@ func TestDataMeshClientServer(t *testing.T) {
 	}
 
 	for i:=0; i<num; i++ {
-		msg := testReceiver.messages[i]
-
-		var evtr Event
-		if err = proto.Unmarshal(msg, &evtr); err != nil {
-			t.Fatal("Error while unmarshaling", err)
-		}
-
-		assert.True(t, reflect.DeepEqual(evts[i], evtr))
+		assert.True(t, reflect.DeepEqual(evts[i], *testReceiver.messages[i]))
 	}
 }
