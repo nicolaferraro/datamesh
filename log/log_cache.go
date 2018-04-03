@@ -12,10 +12,7 @@ func NewLogCache() *LogCache {
 	return &LogCache{}
 }
 
-/*
- * implements common.MessageObserver
- */
-func (cache *LogCache) Accept(evt *protobuf.Event) error {
+func (cache *LogCache) Register(evt *protobuf.Event) error {
 	cache.events = append(cache.events, evt)
 	return nil
 }

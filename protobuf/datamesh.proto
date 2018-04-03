@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package protobuf;
 
-import "hacks/google/protobuf/struct.proto";
 import "hacks/google/protobuf/empty.proto";
 
 // The DataMesh interface for all exposed services.
@@ -81,12 +80,14 @@ message Event {
 
 // A path in the projection store
 message Path {
-    string  path    = 1;
-    uint64  version = 2;
+    string  location    = 1;
+    uint64  version     = 2;
 }
 
 // The object contained in a specific Path
 message Data {
-    Path                    path    = 1;
-    google.protobuf.Struct  content = 3;
+    Path    path    = 1;
+    // JSON encoded content
+    bytes   content = 2;
 }
+

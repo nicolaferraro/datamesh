@@ -7,44 +7,179 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/nicolaferraro/datamesh/projection"
 	"github.com/nicolaferraro/datamesh/protobuf"
-	"github.com/golang/protobuf/ptypes/struct"
+	"encoding/json"
+	"time"
 )
 
 const testDir = "../.testdata/log"
 
-func TestBasicController(t *testing.T) {
+func initController(t *testing.T) *Controller {
 	os.RemoveAll(testDir)
 	eventLog, err := log.NewLog(testDir)
 	assert.Nil(t, err)
 	prj := projection.NewProjection()
-	ctrl := NewController(prj, eventLog)
+	return NewController(prj, eventLog)
+}
+
+func TestBasicController(t *testing.T) {
+	ctrl := initController(t)
 
 	evt := protobuf.Event{
 		ClientIdentifier: "ID",
 		Name: "evt",
 	}
 
-	assert.Nil(t, eventLog.Consume(&evt))
+	assert.Nil(t, ctrl.log.Consume(&evt))
 
-	world := &structpb.Struct{map[string]*structpb.Value{
-		"Wor": {Kind: &structpb.Value_StringValue{"ld!"}},
-	}}
+
+	data := []byte(`{
+		"name": "Hello",
+		"value": "World!"
+	}`)
 
 	transaction := protobuf.Transaction{
 		Event: &evt,
 		Operations: []*protobuf.Operation{
-			{&protobuf.Operation_Upsert{&protobuf.UpsertOperation{&protobuf.Data{
-				Path: &protobuf.Path{"hello", 1},
-				Content: world,
-			}}}},
+			protobuf.NewUpsertOperation("x", 1, data),
 		},
 	}
 
 	assert.Nil(t, ctrl.Apply(&transaction))
 
-	//a,_ := prj.Get("hello")
-	//println(a)
+	var serData interface{}
+	assert.Nil(t, json.Unmarshal(data, &serData))
 
-	// TODO better conversion of protobuf objects
+	time.Sleep(50 * time.Millisecond)
+	retrData, err := ctrl.projection.Get("x")
+	assert.Nil(t, err)
+	assert.Equal(t, serData, retrData)
+}
 
+func TestOperationCombo(t *testing.T) {
+	ctrl := initController(t)
+
+	evt := protobuf.Event{
+		ClientIdentifier: "ID",
+		Name: "evt",
+		Version: 1,
+	}
+
+	assert.Nil(t, ctrl.log.Consume(&evt))
+
+
+	data := []byte(`{
+		"name": "Hello",
+		"value": "World!"
+	}`)
+
+	finalData := []byte(`{
+		"value": "World!"
+	}`)
+
+	transaction := protobuf.Transaction{
+		Event: &evt,
+		Operations: []*protobuf.Operation{
+			protobuf.NewUpsertOperation("x", 1, data),
+			protobuf.NewDeleteOperation("x.name", 2),
+		},
+	}
+
+	assert.Nil(t, ctrl.Apply(&transaction))
+
+	var serData interface{}
+	assert.Nil(t, json.Unmarshal(finalData, &serData))
+
+	time.Sleep(50 * time.Millisecond)
+	retrData, err := ctrl.projection.Get("x")
+	assert.Nil(t, err)
+	assert.Equal(t, serData, retrData)
+}
+
+func TestOperationOverride(t *testing.T) {
+	ctrl := initController(t)
+
+	evt := protobuf.Event{
+		ClientIdentifier: "ID",
+		Name: "evt",
+		Version: 1,
+	}
+
+	assert.Nil(t, ctrl.log.Consume(&evt))
+
+
+	data1 := []byte(`{
+		"name": "1",
+		"surname": "2",
+		"value": "3"
+	}`)
+
+	data2 := []byte(`{
+		"name": "11",
+		"surname": "12",
+		"value": "13",
+		"other": "14"
+	}`)
+
+	data3 := []byte(`{
+		"name": "Hello",
+		"value": "World!"
+	}`)
+
+	finalData := []byte(`{
+		"value": "World!"
+	}`)
+
+	transaction := protobuf.Transaction{
+		Event: &evt,
+		Operations: []*protobuf.Operation{
+			protobuf.NewUpsertOperation("x", 1, data1),
+			protobuf.NewUpsertOperation("x", 1, data2),
+			protobuf.NewUpsertOperation("x", 1, data3),
+			protobuf.NewDeleteOperation("x.name", 2),
+		},
+	}
+
+	assert.Nil(t, ctrl.Apply(&transaction))
+
+	var serData interface{}
+	assert.Nil(t, json.Unmarshal(finalData, &serData))
+
+	time.Sleep(50 * time.Millisecond)
+	retrData, err := ctrl.projection.Get("x")
+	assert.Nil(t, err)
+	assert.Equal(t, serData, retrData)
+}
+
+func TestDelayedEvent(t *testing.T) {
+	ctrl := initController(t)
+
+	evt := protobuf.Event{
+		ClientIdentifier: "ID",
+		Name: "evt",
+	}
+
+	data := []byte(`{
+		"name": "Hello",
+		"value": "World!"
+	}`)
+
+	transaction := protobuf.Transaction{
+		Event: &evt,
+		Operations: []*protobuf.Operation{
+			protobuf.NewUpsertOperation("x", 1, data),
+		},
+	}
+
+	assert.Nil(t, ctrl.Apply(&transaction))
+
+	// Now push the event
+	assert.Nil(t, ctrl.log.Consume(&evt))
+
+	var serData interface{}
+	assert.Nil(t, json.Unmarshal(data, &serData))
+
+	time.Sleep(50 * time.Millisecond)
+	retrData, err := ctrl.projection.Get("x")
+	assert.Nil(t, err)
+	assert.Equal(t, serData, retrData)
 }

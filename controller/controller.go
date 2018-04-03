@@ -5,40 +5,64 @@ import (
 	"github.com/nicolaferraro/datamesh/log"
 	"github.com/nicolaferraro/datamesh/protobuf"
 	"errors"
+	"github.com/nicolaferraro/datamesh/common"
 )
 
 type Controller struct {
 	projection		*projection.Projection
 	log				*log.Log
 	globalVersion	uint64
+	serializer		*common.Serializer
 }
 
 func NewController(projection *projection.Projection, log *log.Log) *Controller {
-	return &Controller{
+	ctrl := Controller{
 		projection: projection,
 		log: log,
 	}
+	ctrl.serializer = common.NewSerializer(&ctrl)
+	log.Listen(ctrl.serializer)
+	return &ctrl
 }
 
 func (ctrl *Controller) Apply(transaction *protobuf.Transaction) error {
-	if transaction == nil || transaction.Event == nil {
-		return errors.New("Cannot apply empty or incomplete transaction")
-	}
+	ctrl.serializer.Push(transaction)
+	return nil
+}
 
-	event := ctrl.log.Cache.Get(transaction.Event.ClientIdentifier)
-	if event == nil {
-		return errors.New("Cannot find the event that triggered transaction in cache")
-	}
-
-	//tvers := event.Version
-	for _, operation := range transaction.Operations {
-		if err := ctrl.applyOperation(operation); err != nil {
-			ctrl.projection.Rollback()
-			return err
+func (ctrl *Controller) ApplyValue(value interface{}) (bool, error) {
+	if transaction, ok := value.(*protobuf.Transaction); ok {
+		if transaction == nil || transaction.Event == nil {
+			return false, errors.New("Cannot apply empty or incomplete transaction")
 		}
-	}
 
-	return ctrl.projection.Commit()
+		eventVersion := transaction.Event.Version
+		if eventVersion == 0 {
+			event := ctrl.log.Cache.Get(transaction.Event.ClientIdentifier)
+			if event == nil {
+				return false, nil
+			}
+			eventVersion = event.Version
+		}
+
+		prjVersion := ctrl.projection.Version
+		if eventVersion != prjVersion + 1 {
+			return false, nil
+		}
+
+		for _, operation := range transaction.Operations {
+			if err := ctrl.applyOperation(operation); err != nil {
+				ctrl.projection.Rollback()
+				return false, err
+			}
+		}
+
+		if err := ctrl.projection.Commit(); err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+	return false, nil
 }
 
 func (ctrl *Controller) applyOperation(operation *protobuf.Operation) error {
@@ -54,9 +78,28 @@ func (ctrl *Controller) applyOperation(operation *protobuf.Operation) error {
 }
 
 func (ctrl *Controller) applyUpsert(operation *protobuf.UpsertOperation) error {
-	return ctrl.projection.Upsert(operation.Data.Path.Path, operation.Data.Content.Fields)
+	unmarshalled, err := operation.Data.Unmarshal()
+	if err != nil {
+		return err
+	}
+	expanded, err := unmarshalled.Expand()
+	if err != nil {
+		return err
+	}
+
+	if len(expanded) > 1 {
+		if err := ctrl.projection.Delete(operation.Data.Path.Location); err != nil {
+			return err
+		}
+	}
+	for _, data := range expanded {
+		if err := ctrl.projection.Upsert(data.Path.Location, data.Content); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (ctrl *Controller) applyDelete(operation *protobuf.DeleteOperation) error {
-	return ctrl.projection.Delete(operation.Path.Path)
+	return ctrl.projection.Delete(operation.Path.Location)
 }

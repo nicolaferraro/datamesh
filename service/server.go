@@ -8,10 +8,7 @@ import (
 	"github.com/nicolaferraro/datamesh/protobuf"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/nicolaferraro/datamesh/common"
-	"github.com/golang/protobuf/ptypes/struct"
-	"github.com/golang/protobuf/jsonpb"
 	"encoding/json"
-	"bytes"
 )
 
 
@@ -54,7 +51,7 @@ func (srv *DefaultDataMeshServer) Process(protobuf.DataMesh_ProcessServer) error
 }
 
 func (srv *DefaultDataMeshServer) Read(ctx context.Context, path *protobuf.Path) (*protobuf.Data, error) {
-	data, err := srv.retriever.Get(path.Path)
+	data, err := srv.retriever.Get(path.Location)
 	if err != nil {
 		return nil, err
 	}
@@ -64,14 +61,9 @@ func (srv *DefaultDataMeshServer) Read(ctx context.Context, path *protobuf.Path)
 		return nil, err
 	}
 
-	var pbData *structpb.Struct
-	if err = jsonpb.Unmarshal(bytes.NewReader(jsonData), pbData); err != nil {
-		return nil, err
-	}
-
 	return &protobuf.Data{
 		Path: path,
-		Content: pbData,
+		Content: jsonData,
 	}, nil
 }
 

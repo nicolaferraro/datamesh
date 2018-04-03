@@ -16,7 +16,7 @@ const (
 )
 
 type Projection struct {
-	version		uint64
+	Version		uint64
 	root		*node
 }
 
@@ -46,7 +46,7 @@ func (prj *Projection) Upsert(key string, value interface{}) error {
 		return err
 	}
 
-	return upsertValue(parts, value, prj.root, prj.version)
+	return upsertValue(parts, value, prj.root, prj.Version)
 }
 
 func (prj *Projection) Delete(key string) error {
@@ -55,7 +55,7 @@ func (prj *Projection) Delete(key string) error {
 		return err
 	}
 
-	return deleteValue(parts, prj.root, prj.version)
+	return deleteValue(parts, prj.root, prj.Version)
 }
 
 func (prj *Projection) Get(key string) (interface{}, error) {
@@ -63,16 +63,16 @@ func (prj *Projection) Get(key string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return getValue(parts, prj.root, prj.version)
+	return getValue(parts, prj.root, prj.Version)
 }
 
 func (prj *Projection) Commit() error {
-	prj.version++
+	prj.Version++
 	return nil
 }
 
 func (prj *Projection) Rollback() error {
-	return rollback(prj.root, prj.version)
+	return rollback(prj.root, prj.Version)
 }
 
 func upsertValue(parts []string, value interface{}, n *node, version uint64) error {

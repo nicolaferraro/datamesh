@@ -20,6 +20,7 @@ const (
 )
 
 type Log struct {
+	common.Observable
 	directory	string
 	file		*os.File
 	entries		uint64
@@ -67,11 +68,19 @@ func (log *Log) Consume(evt *protobuf.Event) error {
 		return err
 	}
 
-	if err = log.Cache.Accept(evt); err != nil {
+	newSize, err := log.Append(msg)
+
+	evtCopy := *evt
+	evtCopy.Version = newSize
+	if err = log.Cache.Register(&evtCopy); err != nil {
 		return err
 	}
 
-	_, err = log.Append(msg)
+	log.Notify(common.Notification{
+		Type: common.NotificationTypeEventPushed,
+		Payload: &evtCopy,
+	})
+
 	return err
 }
 
