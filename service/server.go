@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"github.com/nicolaferraro/datamesh/protobuf"
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/nicolaferraro/datamesh/common"
 	"encoding/json"
 )
@@ -29,23 +28,23 @@ func NewDefaultDataMeshServer(port int, consumer common.EventConsumer, executor 
 	}
 }
 
-func (srv *DefaultDataMeshServer) Push(ctx context.Context, evt *protobuf.Event) (*empty.Empty, error) {
+func (srv *DefaultDataMeshServer) Push(ctx context.Context, evt *protobuf.Event) (*protobuf.Empty, error) {
 	if err := srv.consumer.Consume(evt); err != nil {
 		return nil, err
 	}
-	return &empty.Empty{}, nil
+	return &protobuf.Empty{}, nil
 }
 
 
-func (srv *DefaultDataMeshServer) FastProcess(ctx context.Context, transaction *protobuf.Transaction) (*empty.Empty, error) {
+func (srv *DefaultDataMeshServer) Process(ctx context.Context, transaction *protobuf.Transaction) (*protobuf.Empty, error) {
 	if err := srv.executor.Apply(transaction); err != nil {
 		return nil, err
 	}
-	return &empty.Empty{}, nil
+	return &protobuf.Empty{}, nil
 }
 
 
-func (srv *DefaultDataMeshServer) Process(protobuf.DataMesh_ProcessServer) error {
+func (srv *DefaultDataMeshServer) ProcessQueue(empty *protobuf.Empty, server protobuf.DataMesh_ProcessQueueServer) error {
 	// TBD
 	return nil
 }

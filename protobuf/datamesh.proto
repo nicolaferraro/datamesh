@@ -2,21 +2,21 @@ syntax = "proto3";
 
 package protobuf;
 
-import "hacks/google/protobuf/empty.proto";
+option java_package = "me.nicolaferraro.datamesh.protobuf";
 
 // The DataMesh interface for all exposed services.
 service DataMesh {
 
     // Used to push a event that will be stored on the event log.
-    rpc Push (Event) returns (google.protobuf.Empty) {
+    rpc Push (Event) returns (Empty) {
     }
 
     // Allows to pass a transaction related to a event before it's explicitly requested.
-    rpc FastProcess (Transaction) returns (google.protobuf.Empty) {
+    rpc Process (Transaction) returns (Empty) {
     }
 
-    // The server sends events that need to be processed. The client reply with the corresponding transactions.
-    rpc Process (stream Transaction) returns (stream Event) {
+    // The server sends events that need to be processed. The client will reply with the corresponding transactions asynchronously.
+    rpc ProcessQueue (Empty) returns (stream Event) {
     }
 
     // Used by the client to query the projections.
@@ -90,4 +90,7 @@ message Data {
     // JSON encoded content
     bytes   content = 2;
 }
+
+// A placeholder for empty message
+message Empty {}
 
