@@ -12,19 +12,21 @@ import (
 
 
 type DefaultDataMeshServer struct {
-	port     		int
-	consumer		common.EventConsumer
-	executor		common.TransactionExecutor
-	retriever		common.DataRetriever
-	grpcServer 		*grpc.Server
+	port     			int
+	consumer			common.EventConsumer
+	executor			common.TransactionExecutor
+	retriever			common.DataRetriever
+	consumerController	common.EventConsumerController
+	grpcServer 			*grpc.Server
 }
 
-func NewDefaultDataMeshServer(port int, consumer common.EventConsumer, executor common.TransactionExecutor, retriever common.DataRetriever) *DefaultDataMeshServer {
+func NewDefaultDataMeshServer(port int, consumer common.EventConsumer, executor common.TransactionExecutor, retriever common.DataRetriever, consumerController common.EventConsumerController) *DefaultDataMeshServer {
 	return &DefaultDataMeshServer{
 		port: port,
 		consumer: consumer,
 		executor: executor,
 		retriever: retriever,
+		consumerController: consumerController,
 	}
 }
 
@@ -45,7 +47,7 @@ func (srv *DefaultDataMeshServer) Process(ctx context.Context, transaction *prot
 
 
 func (srv *DefaultDataMeshServer) ProcessQueue(empty *protobuf.Empty, server protobuf.DataMesh_ProcessQueueServer) error {
-	// TBD
+	srv.consumerController.ConnectEventConsumer(protobuf.NewProcessQueueConsumer(server))
 	return nil
 }
 

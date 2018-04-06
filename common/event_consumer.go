@@ -7,3 +7,7 @@ type EventConsumer interface {
 	Consume(*protobuf.Event) 	error
 
 }
+
+type EventConsumerController interface {
+	ConnectEventConsumer(EventConsumer)
+}

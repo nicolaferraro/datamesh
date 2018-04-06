@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"github.com/stretchr/testify/assert"
 	"github.com/nicolaferraro/datamesh/protobuf"
+	"github.com/nicolaferraro/datamesh/common"
 )
 
 const (
@@ -21,6 +22,9 @@ func (r *TestStub) Consume(evt *protobuf.Event) error  {
 	return nil
 }
 
+func (r *TestStub) ConnectEventConsumer(consumer common.EventConsumer) {
+}
+
 func (r *TestStub) Apply(transaction *protobuf.Transaction) error {
 	return nil
 }
@@ -34,7 +38,7 @@ func TestDataMeshClientServer(t *testing.T) {
 	defer ctx.Done()
 
 	testReceiver := TestStub{}
-	server := NewDefaultDataMeshServer(testDefaultServerPort, &testReceiver, &testReceiver, &testReceiver)
+	server := NewDefaultDataMeshServer(testDefaultServerPort, &testReceiver, &testReceiver, &testReceiver, &testReceiver)
 	go server.Start()
 
 	client, err := NewDataMeshClientConnection("localhost", testDefaultServerPort);
