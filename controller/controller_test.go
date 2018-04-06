@@ -50,7 +50,7 @@ func TestBasicController(t *testing.T) {
 	assert.Nil(t, json.Unmarshal(data, &serData))
 
 	time.Sleep(50 * time.Millisecond)
-	retrData, err := ctrl.projection.Get("x")
+	_, retrData, err := ctrl.projection.Get("x")
 	assert.Nil(t, err)
 	assert.Equal(t, serData, retrData)
 }
@@ -90,7 +90,7 @@ func TestOperationCombo(t *testing.T) {
 	assert.Nil(t, json.Unmarshal(finalData, &serData))
 
 	time.Sleep(50 * time.Millisecond)
-	retrData, err := ctrl.projection.Get("x")
+	_, retrData, err := ctrl.projection.Get("x")
 	assert.Nil(t, err)
 	assert.Equal(t, serData, retrData)
 }
@@ -145,7 +145,7 @@ func TestOperationOverride(t *testing.T) {
 	assert.Nil(t, json.Unmarshal(finalData, &serData))
 
 	time.Sleep(50 * time.Millisecond)
-	retrData, err := ctrl.projection.Get("x")
+	_, retrData, err := ctrl.projection.Get("x")
 	assert.Nil(t, err)
 	assert.Equal(t, serData, retrData)
 }
@@ -179,7 +179,7 @@ func TestDelayedEvent(t *testing.T) {
 	assert.Nil(t, json.Unmarshal(data, &serData))
 
 	time.Sleep(50 * time.Millisecond)
-	retrData, err := ctrl.projection.Get("x")
+	_, retrData, err := ctrl.projection.Get("x")
 	assert.Nil(t, err)
 	assert.Equal(t, serData, retrData)
 }

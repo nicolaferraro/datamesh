@@ -13,14 +13,14 @@ func TestBasicWR(t *testing.T) {
 	prj.Upsert("a.b", 1)
 	prj.Commit()
 
-	v,_ := prj.Get("a.b")
+	_, v,_ := prj.Get("a.b")
 	ve := 1
 	if v != ve {
 		t.Error("was not 1")
 	}
 
 
-	vo,_ := prj.Get("a")
+	_, vo,_ := prj.Get("a")
 	voe := make(map[string]interface{})
 	voe["b"] = 1
 	if !reflect.DeepEqual(vo, voe) {
@@ -40,12 +40,12 @@ func TestBasicWD(t *testing.T) {
 	prj.Delete("a.b")
 	prj.Commit()
 
-	v,_ := prj.Get("a.b")
+	_, v,_ := prj.Get("a.b")
 	if v != nil {
 		t.Error("was not nil")
 	}
 
-	vo,_ := prj.Get("a")
+	_, vo,_ := prj.Get("a")
 	voe := make(map[string]interface{})
 	voe["c"] = 2
 	if !reflect.DeepEqual(vo, voe) {
@@ -55,7 +55,7 @@ func TestBasicWD(t *testing.T) {
 	prj.Delete("a.c")
 	prj.Commit()
 
-	vo2,_ := prj.Get("a")
+	_, vo2,_ := prj.Get("a")
 	if vo2 != nil {
 		t.Error("was not nil")
 	}
@@ -73,17 +73,17 @@ func TestSubtreeDelete(t *testing.T) {
 	prj.Delete("a.c")
 	prj.Commit()
 
-	v,_ := prj.Get("a.c")
+	_, v,_ := prj.Get("a.c")
 	if v != nil {
 		t.Error("was not nil")
 	}
 
-	v2,_ := prj.Get("a.c.1")
+	_, v2,_ := prj.Get("a.c.1")
 	if v2 != nil {
 		t.Error("was not nil")
 	}
 
-	vo,_ := prj.Get("a")
+	_, vo,_ := prj.Get("a")
 	voe := make(map[string]interface{})
 	voe["b"] = 1
 	if !reflect.DeepEqual(vo, voe) {
@@ -103,7 +103,7 @@ func TestSubtreeUpsert(t *testing.T) {
 	prj.Upsert("a.c", 2)
 	prj.Commit()
 
-	vo,_ := prj.Get("a")
+	_, vo,_ := prj.Get("a")
 	voe := make(map[string]interface{})
 	voe["b"] = 1
 	voe["c"] = 2
@@ -127,7 +127,7 @@ func TestSubtreeUpsertRestore(t *testing.T) {
 	prj.Upsert("a.c.2", 2)
 	prj.Commit()
 
-	vo,_ := prj.Get("a")
+	_, vo,_ := prj.Get("a")
 	voe := make(map[string]interface{})
 	voe["b"] = 1
 	voesubc := make(map[string]interface{})
@@ -152,7 +152,7 @@ func TestSubtreeUpsertRestoreRollback(t *testing.T) {
 
 	prj.Upsert("a.c.2", 2)
 
-	vo,_ := prj.Get("a")
+	_, vo,_ := prj.Get("a")
 	voe := make(map[string]interface{})
 	voe["b"] = 1
 	voesubc := make(map[string]interface{})
@@ -164,7 +164,7 @@ func TestSubtreeUpsertRestoreRollback(t *testing.T) {
 
 	prj.Rollback()
 
-	vo2,_ := prj.Get("a")
+	_, vo2,_ := prj.Get("a")
 	voe2 := make(map[string]interface{})
 	voe2["b"] = 1
 	voe2["c"] = 2

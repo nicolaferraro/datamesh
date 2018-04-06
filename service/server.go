@@ -52,7 +52,7 @@ func (srv *DefaultDataMeshServer) ProcessQueue(empty *protobuf.Empty, server pro
 }
 
 func (srv *DefaultDataMeshServer) Read(ctx context.Context, path *protobuf.Path) (*protobuf.Data, error) {
-	data, err := srv.retriever.Get(path.Location)
+	version, data, err := srv.retriever.Get(path.Location)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,10 @@ func (srv *DefaultDataMeshServer) Read(ctx context.Context, path *protobuf.Path)
 	}
 
 	return &protobuf.Data{
-		Path: path,
+		Path: &protobuf.Path{
+			Version: version,
+			Location: path.Location,
+		},
 		Content: jsonData,
 	}, nil
 }

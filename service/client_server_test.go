@@ -29,8 +29,8 @@ func (r *TestStub) Apply(transaction *protobuf.Transaction) error {
 	return nil
 }
 
-func (r *TestStub) Get(key string) (interface{}, error) {
-	return nil, nil
+func (r *TestStub) Get(key string) (uint64, interface{}, error) {
+	return 0, nil, nil
 }
 
 func TestDataMeshClientServer(t *testing.T) {

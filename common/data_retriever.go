@@ -1,5 +1,5 @@
 package common
 
 type DataRetriever interface {
-	Get(key string) (interface{}, error)
+	Get(key string) (uint64, interface{}, error)
 }

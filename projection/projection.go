@@ -58,10 +58,10 @@ func (prj *Projection) Delete(key string) error {
 	return deleteValue(parts, prj.root, prj.Version)
 }
 
-func (prj *Projection) Get(key string) (interface{}, error) {
+func (prj *Projection) Get(key string) (uint64, interface{}, error) {
 	parts, err := parseKey(key)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 	return getValue(parts, prj.root, prj.Version)
 }
@@ -128,22 +128,22 @@ func deleteChildren(n *node, version uint64) error {
 	return nil
 }
 
-func getValue(parts []string, n *node, version uint64) (interface{}, error) {
+func getValue(parts []string, n *node, version uint64) (uint64, interface{}, error) {
 	if isDeleted(n, version) {
-		return nil, nil
+		return 0, nil, nil
 	}
 	if len(parts) > 0 {
 		child, ok := n.children[parts[0]]
 		if ok {
-			res, err := getValue(parts[1:], child, version)
-			return res, err
+			ver, res, err := getValue(parts[1:], child, version)
+			return ver, res, err
 		} else {
-			return nil, nil
+			return 0, nil, nil
 		}
 	}
 
-	res := getTreeValue(n, version)
-	return res, nil
+	ver, res := getTreeValue(n, version)
+	return ver, res, nil
 }
 
 func isDeleted(n *node, version uint64) bool {
@@ -158,7 +158,7 @@ func isDeleted(n *node, version uint64) bool {
 	return deleted
 }
 
-func getLeafValue(n *node, version uint64) interface{} {
+func getLeafValue(n *node, version uint64) (uint64, interface{}) {
 	maxV := uint64(0)
 	var val interface{}
 	for v,vv := range n.value {
@@ -173,32 +173,36 @@ func getLeafValue(n *node, version uint64) interface{} {
 			maxV = v
 		}
 	}
-	return val
+	return maxV, val
 }
 
-func getTreeValue(n *node, version uint64) interface{} {
+func getTreeValue(n *node, version uint64) (uint64, interface{}) {
 	if isDeleted(n, version) {
-		return nil
+		return 0, nil
 	}
-	val := getLeafValue(n, version)
+	ver, val := getLeafValue(n, version)
 	if val != nil {
-		return val
+		return ver, val
 	}
 
+	treeMaxVer := uint64(0)
 	var tree map[string]interface{}
 	for key, child := range n.children {
-		childVal := getTreeValue(child, version)
+		ver, childVal := getTreeValue(child, version)
 		if childVal != nil {
 			if tree == nil {
 				tree = make(map[string]interface{})
 			}
 			tree[key] = childVal
+			if ver > treeMaxVer {
+				treeMaxVer = ver
+			}
 		}
 	}
 	if tree == nil {
-		return nil
+		return 0, nil
 	}
-	return tree
+	return treeMaxVer, tree
 }
 
 func rollback(n *node, version uint64) error {
