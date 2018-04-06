@@ -8,6 +8,7 @@ import (
 	"github.com/nicolaferraro/datamesh/protobuf"
 	"github.com/nicolaferraro/datamesh/common"
 	"encoding/json"
+	"log"
 )
 
 
@@ -47,8 +48,18 @@ func (srv *DefaultDataMeshServer) Process(ctx context.Context, transaction *prot
 
 
 func (srv *DefaultDataMeshServer) ProcessQueue(empty *protobuf.Empty, server protobuf.DataMesh_ProcessQueueServer) error {
-	srv.consumerController.ConnectEventConsumer(protobuf.NewProcessQueueConsumer(server))
-	return nil
+	log.Println("Processing client connected")
+	consumer := protobuf.NewProcessQueueConsumer(server)
+	srv.consumerController.ConnectEventConsumer(consumer)
+	select {
+		case <- consumer.Closed:
+			log.Println("Processing client disconnected by server")
+			return nil
+		case <- server.Context().Done():
+			log.Println("Processing client disconnected (gone)")
+			consumer.Close()
+			return nil
+	}
 }
 
 func (srv *DefaultDataMeshServer) Read(ctx context.Context, path *protobuf.Path) (*protobuf.Data, error) {

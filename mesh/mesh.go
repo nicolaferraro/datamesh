@@ -26,9 +26,9 @@ func NewMesh(dir string, port int) (*Mesh, error) {
 	}
 	prj := projection.NewProjection()
 
-	ctrl := controller.NewController(prj, eventLog)
-
 	notifier := controller.NewNotifier()
+
+	ctrl := controller.NewController(prj, eventLog, notifier)
 
 	srv := service.NewDefaultDataMeshServer(port, eventLog, ctrl, prj, notifier)
 

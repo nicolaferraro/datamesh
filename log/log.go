@@ -25,19 +25,21 @@ type Log struct {
 	file		*os.File
 	entries		uint64
 	Cache		*LogCache
+	serializer	*common.Serializer
 }
 
 func NewLog(directory string) (*Log, error) {
-	log := &Log{
+	log := Log{
 		directory: directory,
 		Cache: NewLogCache(),
 	}
+	log.serializer = common.NewSerializer(&log)
 
 	if err := log.init(); err != nil {
 		return nil, err
 	}
 
-	return log, nil
+	return &log, nil
 }
 
 func (log *Log) Append(data []byte) (uint64, error) {
@@ -63,25 +65,34 @@ func (log *Log) Append(data []byte) (uint64, error) {
  * Implements common.EventConsumer
  */
 func (log *Log) Consume(evt *protobuf.Event) error {
-	msg, err := proto.Marshal(evt)
-	if err != nil {
-		return err
+	// TODO need feedback
+	log.serializer.Push(evt)
+	return nil
+}
+
+func (log *Log) ApplyValue(value interface{}) (bool, error) {
+	if evt, ok := value.(*protobuf.Event); ok {
+		msg, err := proto.Marshal(evt)
+		if err != nil {
+			return false, err
+		}
+
+		newSize, err := log.Append(msg)
+
+		evtCopy := *evt
+		evtCopy.Version = newSize
+		if err = log.Cache.Register(&evtCopy); err != nil {
+			return false, err
+		}
+
+		log.Notify(common.Notification{
+			Type: common.NotificationTypeEventPushed,
+			Payload: &evtCopy,
+		})
+
+		return true, err
 	}
-
-	newSize, err := log.Append(msg)
-
-	evtCopy := *evt
-	evtCopy.Version = newSize
-	if err = log.Cache.Register(&evtCopy); err != nil {
-		return err
-	}
-
-	log.Notify(common.Notification{
-		Type: common.NotificationTypeEventPushed,
-		Payload: &evtCopy,
-	})
-
-	return err
+	return false, nil
 }
 
 /*

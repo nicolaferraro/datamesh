@@ -18,7 +18,8 @@ func initController(t *testing.T) *Controller {
 	eventLog, err := log.NewLog(testDir)
 	assert.Nil(t, err)
 	prj := projection.NewProjection()
-	return NewController(prj, eventLog)
+	notifier := NewNotifier()
+	return NewController(prj, eventLog, notifier)
 }
 
 func TestBasicController(t *testing.T) {

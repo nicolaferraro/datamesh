@@ -8,6 +8,12 @@ type EventConsumer interface {
 
 }
 
+type CloseableEventConsumer interface {
+	EventConsumer
+	Close()
+	IsClosed() bool
+}
+
 type EventConsumerController interface {
-	ConnectEventConsumer(EventConsumer)
+	ConnectEventConsumer(CloseableEventConsumer)
 }

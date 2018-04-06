@@ -6,19 +6,22 @@ import (
 	"github.com/nicolaferraro/datamesh/protobuf"
 	"errors"
 	"github.com/nicolaferraro/datamesh/common"
+	logger "log"
 )
 
 type Controller struct {
 	projection		*projection.Projection
 	log				*log.Log
+	notifier		*Notifier
 	globalVersion	uint64
 	serializer		*common.Serializer
 }
 
-func NewController(projection *projection.Projection, log *log.Log) *Controller {
+func NewController(projection *projection.Projection, log *log.Log, notifier *Notifier) *Controller {
 	ctrl := Controller{
 		projection: projection,
 		log: log,
+		notifier: notifier,
 	}
 	ctrl.serializer = common.NewSerializer(&ctrl)
 	log.Listen(ctrl.serializer)
@@ -26,6 +29,7 @@ func NewController(projection *projection.Projection, log *log.Log) *Controller 
 }
 
 func (ctrl *Controller) Apply(transaction *protobuf.Transaction) error {
+	logger.Printf("Received transaction for event %s\n", transaction.Event.Name)
 	ctrl.serializer.Push(transaction)
 	return nil
 }
@@ -37,12 +41,15 @@ func (ctrl *Controller) ApplyValue(value interface{}) (bool, error) {
 		}
 
 		eventVersion := transaction.Event.Version
+		cachedEvent := ctrl.log.Cache.Get(transaction.Event.ClientIdentifier)
+		//if cachedEvent != nil {
+		//	logger.Printf("Mapping client identifier %s to version %d\n", transaction.Event.ClientIdentifier, cachedEvent.Version)
+		//}
 		if eventVersion == 0 {
-			event := ctrl.log.Cache.Get(transaction.Event.ClientIdentifier)
-			if event == nil {
+			if cachedEvent == nil {
 				return false, nil
 			}
-			eventVersion = event.Version
+			eventVersion = cachedEvent.Version
 		}
 
 		prjVersion := ctrl.projection.Version
@@ -51,11 +58,33 @@ func (ctrl *Controller) ApplyValue(value interface{}) (bool, error) {
 		}
 
 		for _, operation := range transaction.Operations {
+			if operation.GetRead() != nil {
+				path := operation.GetRead().Path
+
+				currentVersion, _, err := ctrl.projection.Get(path.Location)
+				if err != nil {
+					return false, err
+				}
+
+				if path.Version < currentVersion {
+					logger.Printf("Cannot apply transaction %d. Data read by transaction has changed from version %d to %d. Discarding.\n", eventVersion, path.Version, currentVersion)
+					if cachedEvent != nil {
+						ctrl.notifier.Notify(cachedEvent)
+					}
+					return true, nil
+				}
+			}
+		}
+
+		logger.Printf("Applying transaction %d\n", eventVersion)
+		for _, operation := range transaction.Operations {
 			if err := ctrl.applyOperation(operation); err != nil {
 				ctrl.projection.Rollback()
 				return false, err
 			}
 		}
+
+		//logger.Printf("Serializer size is now %d\n", ctrl.serializer.Size())
 
 		if err := ctrl.projection.Commit(); err != nil {
 			return false, err
