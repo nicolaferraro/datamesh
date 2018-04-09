@@ -1,4 +1,4 @@
-package log
+package eventlog
 
 import (
 	"os"
@@ -9,6 +9,8 @@ import (
 	"github.com/nicolaferraro/datamesh/protobuf"
 	"github.com/golang/protobuf/proto"
 	"github.com/nicolaferraro/datamesh/common"
+	"github.com/nicolaferraro/datamesh/notification"
+	"context"
 )
 
 const (
@@ -19,21 +21,20 @@ const (
 	lookupWindowShift	= 3072
 )
 
-type Log struct {
-	common.Observable
-	directory	string
-	file		*os.File
-	entries		uint64
-	Cache		*LogCache
-	serializer	*common.Serializer
+type EventLog struct {
+	directory		string
+	file			*os.File
+	entries			uint64
+	serializer		*common.Serializer
+	notificationBus	*notification.NotificationBus
 }
 
-func NewLog(directory string) (*Log, error) {
-	log := Log{
+func NewEventLog(ctx context.Context, directory string, bus *notification.NotificationBus) (*EventLog, error) {
+	log := EventLog{
 		directory: directory,
-		Cache: NewLogCache(),
+		notificationBus: bus,
 	}
-	log.serializer = common.NewSerializer(&log)
+	log.serializer = common.NewSerializer(ctx, &log)
 
 	if err := log.init(); err != nil {
 		return nil, err
@@ -42,7 +43,13 @@ func NewLog(directory string) (*Log, error) {
 	return &log, nil
 }
 
-func (log *Log) Append(data []byte) (uint64, error) {
+func (log *EventLog) Consume(evt *protobuf.Event) error {
+	// TODO need feedback
+	log.serializer.Push(evt)
+	return nil
+}
+
+func (log *EventLog) AppendRaw(data []byte) (uint64, error) {
 	newSize := log.entries + 1
 	escapedData := escape(data)
 	record := make([]byte, 0)
@@ -61,56 +68,32 @@ func (log *Log) Append(data []byte) (uint64, error) {
 	return newSize, nil
 }
 
-/*
- * Implements common.EventConsumer
- */
-func (log *Log) Consume(evt *protobuf.Event) error {
-	// TODO need feedback
-	log.serializer.Push(evt)
-	return nil
-}
-
-func (log *Log) ApplyValue(value interface{}) (bool, error) {
+// implements common.Serializer callback
+func (log *EventLog) ExecuteSerially(value interface{}) (bool, error) {
 	if evt, ok := value.(*protobuf.Event); ok {
 		msg, err := proto.Marshal(evt)
 		if err != nil {
 			return false, err
 		}
 
-		newSize, err := log.Append(msg)
+		newSize, err := log.AppendRaw(msg)
 
 		evtCopy := *evt
 		evtCopy.Version = newSize
-		if err = log.Cache.Register(&evtCopy); err != nil {
-			return false, err
-		}
 
-		log.Notify(common.Notification{
-			Type: common.NotificationTypeEventPushed,
-			Payload: &evtCopy,
-		})
+		// FIXME do it at every sync for all events
+		log.notificationBus.Notify(notification.NewEventAppendedNotification(&evtCopy, false))
 
 		return true, err
 	}
 	return false, nil
 }
 
-/*
- * Implements common.Observer
- */
-func (log *Log) OnNotification(notification common.Notification) error {
-	if notification.Type == common.NotificationTypeProjectionVersion {
-		version := notification.Payload.(uint64)
-		log.Cache.Prune(version)
-	}
-	return nil
-}
-
-func (log *Log) Sync() error {
+func (log *EventLog) Sync() error {
 	return log.file.Sync()
 }
 
-func (log *Log) init() error {
+func (log *EventLog) init() error {
 	if err := os.MkdirAll(log.directory, 0755); err != nil {
 		return err
 	}

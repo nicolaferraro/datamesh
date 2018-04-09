@@ -1,23 +1,23 @@
-package log
+package transaction
 
 import (
 	"github.com/nicolaferraro/datamesh/protobuf"
 )
 
-type LogCache struct {
+type EventCache struct {
 	events	[]*protobuf.Event
 }
 
-func NewLogCache() *LogCache {
-	return &LogCache{}
+func NewEventCache() *EventCache {
+	return &EventCache{}
 }
 
-func (cache *LogCache) Register(evt *protobuf.Event) error {
+func (cache *EventCache) Register(evt *protobuf.Event) error {
 	cache.events = append(cache.events, evt)
 	return nil
 }
 
-func (cache *LogCache) Prune(version uint64) {
+func (cache *EventCache) Prune(version uint64) {
 	var index int
 	events := cache.events
 
@@ -27,7 +27,7 @@ func (cache *LogCache) Prune(version uint64) {
 	cache.events = events[index:]
 }
 
-func (cache *LogCache) Get(clientIdentifier string) *protobuf.Event {
+func (cache *EventCache) Get(clientIdentifier string) *protobuf.Event {
 	for _, evt := range cache.events {
 		if evt.ClientIdentifier == clientIdentifier {
 			return evt

@@ -9,25 +9,24 @@ import (
 	"github.com/nicolaferraro/datamesh/common"
 	"encoding/json"
 	"log"
+	"github.com/nicolaferraro/datamesh/notification"
 )
 
 
 type DefaultDataMeshServer struct {
 	port     			int
 	consumer			common.EventConsumer
-	executor			common.TransactionExecutor
+	bus					*notification.NotificationBus
 	retriever			common.DataRetriever
-	consumerController	common.EventConsumerController
 	grpcServer 			*grpc.Server
 }
 
-func NewDefaultDataMeshServer(port int, consumer common.EventConsumer, executor common.TransactionExecutor, retriever common.DataRetriever, consumerController common.EventConsumerController) *DefaultDataMeshServer {
+func NewDefaultDataMeshServer(port int, bus *notification.NotificationBus, consumer common.EventConsumer, retriever common.DataRetriever) *DefaultDataMeshServer {
 	return &DefaultDataMeshServer{
 		port: port,
 		consumer: consumer,
-		executor: executor,
+		bus: bus,
 		retriever: retriever,
-		consumerController: consumerController,
 	}
 }
 
@@ -40,9 +39,7 @@ func (srv *DefaultDataMeshServer) Push(ctx context.Context, evt *protobuf.Event)
 
 
 func (srv *DefaultDataMeshServer) Process(ctx context.Context, transaction *protobuf.Transaction) (*protobuf.Empty, error) {
-	if err := srv.executor.Apply(transaction); err != nil {
-		return nil, err
-	}
+	srv.bus.Notify(notification.NewTransactionReceivedNotification(transaction))
 	return &protobuf.Empty{}, nil
 }
 
@@ -50,16 +47,17 @@ func (srv *DefaultDataMeshServer) Process(ctx context.Context, transaction *prot
 func (srv *DefaultDataMeshServer) ProcessQueue(empty *protobuf.Empty, server protobuf.DataMesh_ProcessQueueServer) error {
 	log.Println("Processing client connected")
 	consumer := protobuf.NewProcessQueueConsumer(server)
-	srv.consumerController.ConnectEventConsumer(consumer)
+	srv.bus.Notify(notification.NewClientConnectedNotification(consumer))
+
 	select {
 		case <- consumer.Closed:
 			log.Println("Processing client disconnected by server")
-			return nil
 		case <- server.Context().Done():
 			log.Println("Processing client disconnected (gone)")
-			consumer.Close()
-			return nil
 	}
+
+	srv.bus.Notify(notification.NewClientDisconnectedNotification(consumer))
+	return nil
 }
 
 func (srv *DefaultDataMeshServer) Read(ctx context.Context, path *protobuf.Path) (*protobuf.Data, error) {

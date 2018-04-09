@@ -4,21 +4,15 @@ package protobuf
 // Make it compatible with common.EventConsumer
 type ProcessQueueConsumer struct {
 	queue		DataMesh_ProcessQueueServer
-	isClosed	bool
 	Closed		chan bool
 }
 
 func (consumer *ProcessQueueConsumer) Consume(event *Event) error {
-	return consumer.queue.Send(event)
-}
-
-func (consumer *ProcessQueueConsumer) Close() {
-	consumer.isClosed = true
-	consumer.Closed <- true
-}
-
-func (consumer *ProcessQueueConsumer) IsClosed() bool {
-	return consumer.isClosed
+	if err := consumer.queue.Send(event); err != nil {
+		consumer.Closed <- true
+		return err
+	}
+	return nil
 }
 
 func NewProcessQueueConsumer(queue DataMesh_ProcessQueueServer) *ProcessQueueConsumer {

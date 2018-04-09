@@ -4,6 +4,7 @@ import (
 	"testing"
 	"github.com/stretchr/testify/assert"
 	"time"
+	"context"
 )
 
 type mockApplier struct {
@@ -11,7 +12,7 @@ type mockApplier struct {
 	counter	int
 }
 
-func (m *mockApplier) ApplyValue(v interface{}) (bool, error) {
+func (m *mockApplier) ExecuteSerially(v interface{}) (bool, error) {
 	if m.flag {
 		m.counter++
 	}
@@ -19,8 +20,9 @@ func (m *mockApplier) ApplyValue(v interface{}) (bool, error) {
 }
 
 func TestSerializer(t *testing.T) {
+	ctx := context.Background()
 	mock := mockApplier{}
-	serializer := NewSerializer(&mock)
+	serializer := NewSerializer(ctx, &mock)
 
 	mock.flag = true
 
@@ -36,9 +38,7 @@ func TestSerializer(t *testing.T) {
 
 	assert.Equal(t, 1, mock.counter)
 	mock.flag = true
-	serializer.OnNotification(Notification{
-		Type: NotificationTypeEventPushed,
-	})
+	serializer.OnNotification("example")
 	time.Sleep(50 * time.Millisecond)
 
 	assert.Equal(t, 101, mock.counter)

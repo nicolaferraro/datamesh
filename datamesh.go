@@ -32,7 +32,8 @@ func main() {
 	log.Printf("configured host: '%s'", *host)
 
 	if contexName == "server" {
-		msh, err := mesh.NewMesh(*dir, *port)
+		ctx, cancel := context.WithCancel(context.Background())
+		msh, err := mesh.NewMesh(ctx, *dir, *port)
 		if err != nil {
 			log.Fatal("cannot initialize data mesh: ", err)
 		}
@@ -42,6 +43,7 @@ func main() {
 		if err := msh.Start(); err != nil {
 			log.Fatal("data mesh error: ", err)
 		}
+		cancel()
 	} else if contexName == "client" {
 		if flag.NArg() < 2 {
 			fmt.Printf("Error. Syntax: datamesh client <action> <options>\n")

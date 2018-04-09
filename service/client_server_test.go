@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/nicolaferraro/datamesh/protobuf"
 	"github.com/nicolaferraro/datamesh/common"
+	"github.com/nicolaferraro/datamesh/notification"
 )
 
 const (
@@ -37,8 +38,9 @@ func TestDataMeshClientServer(t *testing.T) {
 	ctx := context.Background()
 	defer ctx.Done()
 
+	bus := notification.NewNotificationBus(ctx)
 	testReceiver := TestStub{}
-	server := NewDefaultDataMeshServer(testDefaultServerPort, &testReceiver, &testReceiver, &testReceiver, &testReceiver)
+	server := NewDefaultDataMeshServer(testDefaultServerPort, bus, &testReceiver, &testReceiver)
 	go server.Start()
 
 	client, err := NewDataMeshClientConnection("localhost", testDefaultServerPort);

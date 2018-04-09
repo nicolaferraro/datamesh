@@ -1,11 +1,14 @@
 package mesh
 
 import (
-	"github.com/nicolaferraro/datamesh/log"
 	"github.com/nicolaferraro/datamesh/projection"
 	"path"
 	"github.com/nicolaferraro/datamesh/service"
-	"github.com/nicolaferraro/datamesh/controller"
+	"github.com/nicolaferraro/datamesh/notification"
+	"context"
+	"github.com/nicolaferraro/datamesh/eventlog"
+	"github.com/nicolaferraro/datamesh/processor"
+	"github.com/nicolaferraro/datamesh/transaction"
 )
 
 const (
@@ -14,28 +17,34 @@ const (
 
 type Mesh struct {
 	dir			string
-	log			*log.Log
+	eventLog	*eventlog.EventLog
 	projection	*projection.Projection
+	processor   *processor.EventProcessor
+	tx			*transaction.TransactionManager
 	server		*service.DefaultDataMeshServer
 }
 
-func NewMesh(dir string, port int) (*Mesh, error) {
-	eventLog, err := log.NewLog(path.Join(dir, LogSubdir))
+func NewMesh(ctx context.Context, dir string, port int) (*Mesh, error) {
+	bus := notification.NewNotificationBus(ctx)
+	log, err := eventlog.NewEventLog(ctx, path.Join(dir, LogSubdir), bus)
 	if err != nil {
 		return nil, err
 	}
+
+	proc := processor.NewEventProcessor(ctx, bus)
+
 	prj := projection.NewProjection()
+	tx := transaction.NewTransactionManager(ctx, prj, bus)
 
-	notifier := controller.NewNotifier()
 
-	ctrl := controller.NewController(prj, eventLog, notifier)
-
-	srv := service.NewDefaultDataMeshServer(port, eventLog, ctrl, prj, notifier)
+	srv := service.NewDefaultDataMeshServer(port, bus, log, prj)
 
 	return &Mesh{
 		dir: dir,
-		log: eventLog,
+		eventLog: log,
+		processor: proc,
 		projection: prj,
+		tx: tx,
 		server: srv,
 	}, nil
 }

@@ -1,37 +1,35 @@
-package controller
+package transaction
 
 import (
 	"testing"
-	"github.com/nicolaferraro/datamesh/log"
-	"os"
 	"github.com/stretchr/testify/assert"
 	"github.com/nicolaferraro/datamesh/projection"
 	"github.com/nicolaferraro/datamesh/protobuf"
 	"encoding/json"
 	"time"
+	"context"
+	"github.com/nicolaferraro/datamesh/notification"
 )
 
-const testDir = "../.testdata/log"
 
-func initController(t *testing.T) *Controller {
-	os.RemoveAll(testDir)
-	eventLog, err := log.NewLog(testDir)
-	assert.Nil(t, err)
+func initTransactionManager() *TransactionManager {
+	ctx := context.Background()
 	prj := projection.NewProjection()
-	notifier := NewNotifier()
-	return NewController(prj, eventLog, notifier)
+	bus := notification.NewNotificationBus(ctx)
+	tx := NewTransactionManager(ctx, prj, bus)
+	return tx
 }
 
+
 func TestBasicController(t *testing.T) {
-	ctrl := initController(t)
+	tx := initTransactionManager()
 
 	evt := protobuf.Event{
 		ClientIdentifier: "ID",
 		Name: "evt",
+		Version: 1,
 	}
-
-	assert.Nil(t, ctrl.log.Consume(&evt))
-
+	tx.bus.Notify(notification.NewEventAppendedNotification(&evt, false))
 
 	data := []byte(`{
 		"name": "Hello",
@@ -45,19 +43,19 @@ func TestBasicController(t *testing.T) {
 		},
 	}
 
-	assert.Nil(t, ctrl.Apply(&transaction))
+	tx.bus.Notify(notification.NewTransactionReceivedNotification(&transaction))
 
 	var serData interface{}
 	assert.Nil(t, json.Unmarshal(data, &serData))
 
 	time.Sleep(50 * time.Millisecond)
-	_, retrData, err := ctrl.projection.Get("x")
+	_, retrData, err := tx.projection.Get("x")
 	assert.Nil(t, err)
 	assert.Equal(t, serData, retrData)
 }
 
 func TestOperationCombo(t *testing.T) {
-	ctrl := initController(t)
+	tx := initTransactionManager()
 
 	evt := protobuf.Event{
 		ClientIdentifier: "ID",
@@ -65,7 +63,7 @@ func TestOperationCombo(t *testing.T) {
 		Version: 1,
 	}
 
-	assert.Nil(t, ctrl.log.Consume(&evt))
+	tx.bus.Notify(notification.NewEventAppendedNotification(&evt, false))
 
 
 	data := []byte(`{
@@ -85,19 +83,19 @@ func TestOperationCombo(t *testing.T) {
 		},
 	}
 
-	assert.Nil(t, ctrl.Apply(&transaction))
+	tx.bus.Notify(notification.NewTransactionReceivedNotification(&transaction))
 
 	var serData interface{}
 	assert.Nil(t, json.Unmarshal(finalData, &serData))
 
 	time.Sleep(50 * time.Millisecond)
-	_, retrData, err := ctrl.projection.Get("x")
+	_, retrData, err := tx.projection.Get("x")
 	assert.Nil(t, err)
 	assert.Equal(t, serData, retrData)
 }
 
 func TestOperationOverride(t *testing.T) {
-	ctrl := initController(t)
+	tx := initTransactionManager()
 
 	evt := protobuf.Event{
 		ClientIdentifier: "ID",
@@ -105,7 +103,7 @@ func TestOperationOverride(t *testing.T) {
 		Version: 1,
 	}
 
-	assert.Nil(t, ctrl.log.Consume(&evt))
+	tx.bus.Notify(notification.NewEventAppendedNotification(&evt, false))
 
 
 	data1 := []byte(`{
@@ -140,23 +138,28 @@ func TestOperationOverride(t *testing.T) {
 		},
 	}
 
-	assert.Nil(t, ctrl.Apply(&transaction))
+	tx.bus.Notify(notification.NewTransactionReceivedNotification(&transaction))
 
 	var serData interface{}
 	assert.Nil(t, json.Unmarshal(finalData, &serData))
 
 	time.Sleep(50 * time.Millisecond)
-	_, retrData, err := ctrl.projection.Get("x")
+	_, retrData, err := tx.projection.Get("x")
 	assert.Nil(t, err)
 	assert.Equal(t, serData, retrData)
 }
 
 func TestDelayedEvent(t *testing.T) {
-	ctrl := initController(t)
+	tx := initTransactionManager()
 
 	evt := protobuf.Event{
 		ClientIdentifier: "ID",
 		Name: "evt",
+	}
+	pEvt := protobuf.Event{
+		ClientIdentifier: evt.ClientIdentifier,
+		Name: evt.Name,
+		Version: 1,
 	}
 
 	data := []byte(`{
@@ -171,16 +174,17 @@ func TestDelayedEvent(t *testing.T) {
 		},
 	}
 
-	assert.Nil(t, ctrl.Apply(&transaction))
+	tx.bus.Notify(notification.NewTransactionReceivedNotification(&transaction))
+	time.Sleep(50 * time.Millisecond)
 
 	// Now push the event
-	assert.Nil(t, ctrl.log.Consume(&evt))
+	tx.bus.Notify(notification.NewEventAppendedNotification(&pEvt, false))
 
 	var serData interface{}
 	assert.Nil(t, json.Unmarshal(data, &serData))
 
 	time.Sleep(50 * time.Millisecond)
-	_, retrData, err := ctrl.projection.Get("x")
+	_, retrData, err := tx.projection.Get("x")
 	assert.Nil(t, err)
 	assert.Equal(t, serData, retrData)
 }
