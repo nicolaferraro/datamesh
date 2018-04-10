@@ -68,6 +68,10 @@ func (log *EventLog) AppendRaw(data []byte) (uint64, error) {
 	return newSize, nil
 }
 
+func (log *EventLog) NewReader() (*EventLogReader, error) {
+	return newEventLogReader(log, log.entries)
+}
+
 // implements common.Serializer callback
 func (log *EventLog) ExecuteSerially(value interface{}) (bool, error) {
 	if evt, ok := value.(*protobuf.Event); ok {
@@ -224,13 +228,3 @@ func escape(data []byte) []byte {
 	return escaped
 }
 
-func unescape(data []byte) []byte {
-	if !bytes.Contains(data, []byte{RecordSeparator}) {
-		return data
-	}
-
-	escaped := data
-	escaped = bytes.Replace(escaped, []byte{RecordSeparator, RecordSeparator}, []byte{RecordSeparator}, -1)
-
-	return escaped
-}

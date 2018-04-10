@@ -14,7 +14,6 @@
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
-    "ptypes/empty",
     "ptypes/timestamp"
   ]
   revision = "925541529c1fa6821df4e44ce2723319eb2be768"
@@ -45,6 +44,12 @@
     "trace"
   ]
   revision = "6078986fec03a1dcc236c34816c71b0e05018fda"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sync"
+  packages = ["semaphore"]
+  revision = "1d60e4601c6fd243af51cc01ddf169918a5407ca"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -106,6 +111,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8d8cd06e55ee56b2a921cdc4fc7e725da9676f72e48feeb64ccc9948eba2e71a"
+  inputs-digest = "fa2d3db7bdb869557ab8fa1e2066de0be56cefc52d94466ee52bd9e13d42ca25"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -145,7 +145,7 @@ func (proc *EventProcessor) ExecuteSerially(value interface{}) (bool, error) {
 
 			} else if state.State == eventStateGracePeriod {
 				// Still not processed
-				proc.sendWithTimeout(n.TransactionFailedNotification.Event, state.NumTransmissions + 1)
+				proc.sendWithTimeout(state.Event, state.NumTransmissions + 1)
 				proc.states[ver] = eventInfo{
 					Event: timeout.Event,
 					State: eventStateRequested,

@@ -9,6 +9,7 @@ import (
 	"github.com/nicolaferraro/datamesh/eventlog"
 	"github.com/nicolaferraro/datamesh/processor"
 	"github.com/nicolaferraro/datamesh/transaction"
+	"github.com/nicolaferraro/datamesh/initializer"
 )
 
 const (
@@ -22,6 +23,8 @@ type Mesh struct {
 	processor   *processor.EventProcessor
 	tx			*transaction.TransactionManager
 	server		*service.DefaultDataMeshServer
+	initializer	*initializer.Initializer
+	bus			*notification.NotificationBus
 }
 
 func NewMesh(ctx context.Context, dir string, port int) (*Mesh, error) {
@@ -36,19 +39,25 @@ func NewMesh(ctx context.Context, dir string, port int) (*Mesh, error) {
 	prj := projection.NewProjection()
 	tx := transaction.NewTransactionManager(ctx, prj, bus)
 
+	init := initializer.NewInitializer(ctx, log, bus)
 
 	srv := service.NewDefaultDataMeshServer(port, bus, log, prj)
 
-	return &Mesh{
+	mesh := Mesh{
 		dir: dir,
 		eventLog: log,
 		processor: proc,
 		projection: prj,
 		tx: tx,
 		server: srv,
-	}, nil
+		initializer: init,
+		bus: bus,
+	}
+
+	return &mesh, nil
 }
 
 func (msh *Mesh) Start() error {
+	msh.bus.Notify(notification.NewMeshStartNotification())
 	return msh.server.Start()
 }
