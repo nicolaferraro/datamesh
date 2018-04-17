@@ -3,7 +3,7 @@ package transaction
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
-	"github.com/nicolaferraro/datamesh/projection"
+	"github.com/nicolaferraro/datamesh/context/projection"
 	"github.com/nicolaferraro/datamesh/protobuf"
 	"encoding/json"
 	"time"

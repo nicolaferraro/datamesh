@@ -1,7 +1,7 @@
 package transaction
 
 import (
-	"github.com/nicolaferraro/datamesh/projection"
+	"github.com/nicolaferraro/datamesh/context/projection"
 	"github.com/nicolaferraro/datamesh/protobuf"
 	"errors"
 	"github.com/nicolaferraro/datamesh/common"

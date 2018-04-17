@@ -1,15 +1,15 @@
 package mesh
 
 import (
-	"github.com/nicolaferraro/datamesh/projection"
+	"github.com/nicolaferraro/datamesh/context/projection"
 	"path"
 	"github.com/nicolaferraro/datamesh/service"
 	"github.com/nicolaferraro/datamesh/notification"
 	"context"
 	"github.com/nicolaferraro/datamesh/eventlog"
-	"github.com/nicolaferraro/datamesh/processor"
-	"github.com/nicolaferraro/datamesh/transaction"
-	"github.com/nicolaferraro/datamesh/initializer"
+	"github.com/nicolaferraro/datamesh/context/processor"
+	"github.com/nicolaferraro/datamesh/context/transaction"
+	"github.com/nicolaferraro/datamesh/context/initializer"
 )
 
 const (
