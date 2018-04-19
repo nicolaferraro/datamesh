@@ -4,9 +4,8 @@ import (
 	"context"
 	"github.com/nicolaferraro/datamesh/eventlog"
 	"github.com/nicolaferraro/datamesh/notification"
-	"log"
-	"github.com/nicolaferraro/datamesh/common"
 	"golang.org/x/sync/semaphore"
+	"github.com/golang/glog"
 )
 
 const (
@@ -22,7 +21,6 @@ type Initializer struct {
 	semaphore		*semaphore.Weighted
 	targetVersion	uint64
 	currentVersion	uint64
-	serializer		*common.Serializer
 }
 
 func NewInitializer(ctx context.Context, eventlog *eventlog.EventLog, bus *notification.NotificationBus) *Initializer {
@@ -31,7 +29,6 @@ func NewInitializer(ctx context.Context, eventlog *eventlog.EventLog, bus *notif
 		eventlog: eventlog,
 		bus: bus,
 	}
-	init.serializer = common.NewSerializer(ctx, &init)
 	bus.Connect(&init)
 
 	init.semaphore = semaphore.NewWeighted(PrefetchSize)
@@ -43,60 +40,56 @@ func (init *Initializer) OnNotification(n notification.Notification) {
 	if init.terminated {
 		return
 	} else if n.MeshStartNotification != nil {
-		init.serializer.Push(n)
+		if !init.started {
+			init.started = true
+			go init.run()
+		}
 	} else if n.TransactionProcessedNotification != nil {
 		init.semaphore.Release(1)
-		init.serializer.Push(n)
+		ver := n.TransactionProcessedNotification.Version
+		init.currentVersion = ver
+
+		if ver == init.targetVersion {
+			// End
+			go init.initialized()
+		}
 	}
 }
 
-func (init *Initializer) ExecuteSerially(value interface{}) (bool, error) {
-	if n, ok := value.(notification.Notification); ok {
-		if n.MeshStartNotification != nil && !init.started {
-			init.started = true
+func (init *Initializer) run() {
+	glog.Info("Data Mesh projection initialization started")
 
-			log.Println("data mesh projection initialization started")
+	reader, err := init.eventlog.NewReader()
+	if err != nil {
+		glog.Error("Error during projection initialization: ", err)
+		return
+		// TODO handle better
+	}
 
-			reader, err := init.eventlog.NewReader()
+	init.targetVersion = reader.Top
+	if init.targetVersion == 0 {
+		init.initialized()
+	} else {
+		for v := uint64(1); v <= init.targetVersion; v++ {
+			init.semaphore.Acquire(init.ctx, 1)
+			evt, err := reader.Next()
 			if err != nil {
-				// TODO handle
-				return false, err
+				glog.Error("Error while replaying event log initialization: ", err)
+				return
+				// TODO handle better
 			}
-
-			init.targetVersion = reader.Top
-			if init.targetVersion == 0 {
-				init.initialized()
-			} else {
-				for v := uint64(1); v <= init.targetVersion; v++ {
-					init.semaphore.Acquire(init.ctx, 1)
-					evt, err := reader.Next()
-					if err != nil {
-						log.Println("Fatal error: ", err) // TODO manage
-					}
-					if evt.Version == 0 {
-						evt.Version = v
-					}
-					init.bus.Notify(notification.NewEventAppendedNotification(evt, true))
-				}
+			if evt.Version == 0 {
+				evt.Version = v
 			}
-
-		} else if n.TransactionProcessedNotification != nil {
-			ver := n.TransactionProcessedNotification.Version
-			init.currentVersion = ver
-
-			if ver == init.targetVersion {
-				// End
-				init.initialized()
-			}
+			init.bus.Notify(notification.NewEventAppendedNotification(evt, true))
 		}
 	}
-	return true, nil
 }
 
 func (init *Initializer) initialized() {
 	if !init.terminated {
 		init.terminated = true
-		log.Printf("data mesh projection initialized at version %d\n", init.targetVersion)
+		glog.Infof("Data Mesh projection initialized at version %d\n", init.targetVersion)
 		init.bus.Notify(notification.NewMeshInitializedNotification())
 	}
 }

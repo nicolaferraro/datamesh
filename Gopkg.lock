@@ -8,6 +8,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/golang/glog"
+  packages = ["."]
+  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
+
+[[projects]]
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -111,6 +117,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fa2d3db7bdb869557ab8fa1e2066de0be56cefc52d94466ee52bd9e13d42ca25"
+  inputs-digest = "f9c2c0717192927236d74571cf29eacf627b5c64505e05e592347cb7be5e9bbd"
   solver-name = "gps-cdcl"
   solver-version = 1

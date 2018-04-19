@@ -47,7 +47,7 @@ func (r *EventLogReader) Next() (*protobuf.Event, error) {
 	}
 
 	record := make([]byte, length + 1)
-	numRead, err := r.reader.Read(record)
+	numRead, err := fillBuffer(r.reader, record)
 	if err != nil {
 		return nil, err
 	}
@@ -65,6 +65,23 @@ func (r *EventLogReader) Next() (*protobuf.Event, error) {
 
 	r.current++
 	return &event, nil
+}
+
+func fillBuffer(reader *bufio.Reader, buffer []byte) (int, error) {
+	return fillBufferAcc(reader, buffer, 0)
+}
+
+func fillBufferAcc(reader *bufio.Reader, buffer []byte, acc int) (int, error) {
+	numRead, err := reader.Read(buffer)
+	if err != nil {
+		return acc + numRead, err
+	}
+
+	if numRead == len(buffer) {
+		return acc + numRead, err
+	} else {
+		return fillBufferAcc(reader, buffer[numRead:], acc + numRead)
+	}
 }
 
 func findNextRecordLength(buffer []byte) (uint64, error) {

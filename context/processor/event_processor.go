@@ -70,14 +70,19 @@ func (proc *EventProcessor) ExecuteSerially(value interface{}) (bool, error) {
 				proc.logVersion = ver
 			}
 
+			var numTransmissions int
 			if n.EventAppendedNotification.Replay {
-				proc.sendWithTimeout(n.EventAppendedNotification.Event, 1)
+				numTransmissions = 1
+				proc.sendWithTimeout(n.EventAppendedNotification.Event, numTransmissions)
+			} else {
+				numTransmissions = 0
+				proc.addTimeout(n.EventAppendedNotification.Event, numTransmissions)
 			}
 
 			proc.states[ver] = eventInfo{
 				Event: n.EventAppendedNotification.Event,
 				State: eventStateRequested,
-				NumTransmissions: 1,
+				NumTransmissions: numTransmissions,
 			}
 
 		} else if n.TransactionProcessedNotification != nil {
@@ -179,6 +184,10 @@ func (proc *EventProcessor) ExecuteSerially(value interface{}) (bool, error) {
 
 func (proc *EventProcessor) sendWithTimeout(evt *protobuf.Event, numTransmissions int) {
 	proc.communicator.Send(evt)
+	proc.addTimeout(evt, numTransmissions)
+}
+
+func (proc *EventProcessor) addTimeout(evt *protobuf.Event, numTransmissions int) {
 	timer := time.NewTimer(DefaultRetransmissionTimeout)
 	go func() {
 		<- timer.C

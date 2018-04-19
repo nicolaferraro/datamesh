@@ -4,6 +4,7 @@ import (
 	"strings"
 	"regexp"
 	"errors"
+	"sync"
 )
 
 const (
@@ -30,6 +31,7 @@ type node struct {
 	children	map[string]*node
 	value		map[uint64]interface{}
 	deleted		map[uint64]bool
+	mutex		sync.Mutex
 }
 
 func newNode() *node {
@@ -80,6 +82,9 @@ func upsertValue(parts []string, value interface{}, n *node, version uint64) err
 		return nil
 	}
 
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+
 	child, ok := n.children[parts[0]]
 	if !ok {
 		child = newNode()
@@ -106,6 +111,9 @@ func deleteValue(parts []string, n *node, version uint64) error {
 		return nil
 	}
 
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+
 	if child, ok := n.children[parts[0]]; ok {
 		if len(parts) > 1 {
 			return deleteValue(parts[1:], child, version)
@@ -129,6 +137,9 @@ func deleteChildren(n *node, version uint64) error {
 }
 
 func getValue(parts []string, n *node, version uint64) (uint64, interface{}, error) {
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+
 	if isDeleted(n, version) {
 		return 0, nil, nil
 	}
@@ -188,7 +199,9 @@ func getTreeValue(n *node, version uint64) (uint64, interface{}) {
 	treeMaxVer := uint64(0)
 	var tree map[string]interface{}
 	for key, child := range n.children {
+		child.mutex.Lock()
 		ver, childVal := getTreeValue(child, version)
+		child.mutex.Unlock()
 		if childVal != nil {
 			if tree == nil {
 				tree = make(map[string]interface{})
@@ -206,6 +219,9 @@ func getTreeValue(n *node, version uint64) (uint64, interface{}) {
 }
 
 func rollback(n *node, version uint64) error {
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+
 	delete(n.deleted, version)
 	delete(n.value, version)
 	for _, child := range n.children {

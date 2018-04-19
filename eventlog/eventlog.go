@@ -11,6 +11,7 @@ import (
 	"github.com/nicolaferraro/datamesh/common"
 	"github.com/nicolaferraro/datamesh/notification"
 	"context"
+	"github.com/golang/glog"
 )
 
 const (
@@ -44,12 +45,14 @@ func NewEventLog(ctx context.Context, directory string, bus *notification.Notifi
 }
 
 func (log *EventLog) Consume(evt *protobuf.Event) error {
+	glog.V(4).Infof("Event %s is going to be enqueued\n", evt.ClientIdentifier)
 	// TODO need feedback
 	log.serializer.Push(evt)
 	return nil
 }
 
 func (log *EventLog) AppendRaw(data []byte) (uint64, error) {
+	defer log.Sync() // TODO optimize, do not do it at every write
 	newSize := log.entries + 1
 	escapedData := escape(data)
 	record := make([]byte, 0)
@@ -128,7 +131,7 @@ func (log *EventLog) init() error {
 	return nil
 }
 
-func findLogStatus(file *os.File, size int64) (uint64, int, error) {
+func findLogStatus(file *os.File, size int64) (uint64, int64, error) {
 	offset := size - lookupWindowSize
 	for offset > -lookupWindowSize {
 		prg, fileEnd, found, err := findLogStatusFromOffset(file, offset, size)
@@ -136,7 +139,11 @@ func findLogStatus(file *os.File, size int64) (uint64, int, error) {
 			return 0, 0, err
 		}
 		if found {
-			return prg, fileEnd, nil
+			start := offset
+			if start < 0 {
+				start = 0
+			}
+			return prg, start + int64(fileEnd), nil
 		}
 
 		offset = offset - lookupWindowShift

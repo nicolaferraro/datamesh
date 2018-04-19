@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"github.com/nicolaferraro/datamesh/mesh"
-	"log"
 	"fmt"
 	"os"
 	"github.com/nicolaferraro/datamesh/service"
 	"context"
 	"github.com/nicolaferraro/datamesh/protobuf"
+	"github.com/golang/glog"
 )
 
 func main() {
@@ -27,21 +27,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Printf("configured dir: '%s'", *dir)
-	log.Printf("configured port: '%d'", *port)
-	log.Printf("configured host: '%s'", *host)
+	glog.V(1).Infof("Configured dir: '%s'\n", *dir)
+	glog.V(1).Infof("Configured port: '%d'\n", *port)
+	glog.V(1).Infof("Configured host: '%s'\n", *host)
 
 	if contexName == "server" {
 		ctx, cancel := context.WithCancel(context.Background())
 		msh, err := mesh.NewMesh(ctx, *dir, *port)
 		if err != nil {
-			log.Fatal("cannot initialize data mesh: ", err)
+			glog.Fatal("Cannot initialize data mesh: ", err)
 		}
 
-		log.Printf("data mesh started on port %d\n", *port)
+		glog.Infof("Data Mesh started on port %d\n", *port)
 
 		if err := msh.Start(); err != nil {
-			log.Fatal("data mesh error: ", err)
+			glog.Fatal("Data Mesh error: ", err)
 		}
 		cancel()
 	} else if contexName == "client" {

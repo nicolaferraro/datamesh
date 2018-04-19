@@ -1,8 +1,8 @@
 package common
 
 import (
-	"log"
 	"context"
+	"github.com/golang/glog"
 )
 
 type SerialExecutor interface {
@@ -18,7 +18,7 @@ type Serializer struct {
 
 func NewSerializer(ctx context.Context, executor SerialExecutor) *Serializer {
 	serializer := Serializer{
-		ingress:	make(chan interface{}, 10),
+		ingress:	make(chan interface{}, 256),
 		event:		make(chan bool),
 		executor: 	executor,
 	}
@@ -59,7 +59,7 @@ func (serializer *Serializer) applyPending() {
 	for idx, value := range serializer.queue {
 		if ok, err := serializer.executor.ExecuteSerially(value); ok || err != nil {
 			if err != nil {
-				log.Println("Error while processing:", err)
+				glog.Error("Error while processing: ", err)
 			} else {
 				if queueLen := len(serializer.queue); queueLen > 1 {
 					if idx == 0 {

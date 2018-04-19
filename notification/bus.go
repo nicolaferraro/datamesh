@@ -1,14 +1,16 @@
 package notification
 
-import "context"
+import (
+	"context"
+)
 
-const NotificationBusBufferSize = 512
+const NotificationBusBufferSize = 128
 
 // Bridges publishers and observers inside the application
 type NotificationBus struct {
-	OutOfOrder		bool
-	listeners		[]NotificationBusListener
-	notifications	chan Notification
+	NotStrictOrder bool
+	listeners      []NotificationBusListener
+	notifications  chan Notification
 }
 
 type NotificationBusListener interface {
@@ -43,7 +45,7 @@ func (bus *NotificationBus) Connect(listener NotificationBusListener) {
 }
 
 func (bus *NotificationBus) Notify(notification Notification) {
-	if bus.OutOfOrder {
+	if bus.NotStrictOrder {
 		select {
 		case bus.notifications <- notification:
 		default:

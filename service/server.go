@@ -8,8 +8,8 @@ import (
 	"github.com/nicolaferraro/datamesh/protobuf"
 	"github.com/nicolaferraro/datamesh/common"
 	"encoding/json"
-	"log"
 	"github.com/nicolaferraro/datamesh/notification"
+	"github.com/golang/glog"
 )
 
 
@@ -39,21 +39,22 @@ func (srv *DefaultDataMeshServer) Push(ctx context.Context, evt *protobuf.Event)
 
 
 func (srv *DefaultDataMeshServer) Process(ctx context.Context, transaction *protobuf.Transaction) (*protobuf.Empty, error) {
+	glog.V(10).Infof("Received transaction with version %d\n", transaction.Event.Version)
 	srv.bus.Notify(notification.NewTransactionReceivedNotification(transaction))
 	return &protobuf.Empty{}, nil
 }
 
 
 func (srv *DefaultDataMeshServer) ProcessQueue(empty *protobuf.Empty, server protobuf.DataMesh_ProcessQueueServer) error {
-	log.Println("Processing client connected")
+	glog.V(1).Info("Processing client connected")
 	consumer := protobuf.NewProcessQueueConsumer(server)
 	srv.bus.Notify(notification.NewClientConnectedNotification(consumer))
 
 	select {
 		case <- consumer.Closed:
-			log.Println("Processing client disconnected by server")
+			glog.V(1).Info("Processing client disconnected by server")
 		case <- server.Context().Done():
-			log.Println("Processing client disconnected (gone)")
+			glog.V(1).Info("Processing client disconnected (gone)")
 	}
 
 	srv.bus.Notify(notification.NewClientDisconnectedNotification(consumer))
