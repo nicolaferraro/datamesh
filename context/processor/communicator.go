@@ -37,19 +37,20 @@ func (c *Communicator) Send(evt *protobuf.Event) {
 
 func (c *Communicator) ExecuteSerially(value interface{}) (bool, error) {
 	if evt, ok := value.(*protobuf.Event); ok {
-		glog.V(4).Infof("Requesting processing of event %d\n", evt.Version)
+		glog.V(4).Infof("Requesting processing of event %d to a client\n", evt.Version)
 		if len(c.consumers) > 0 {
+			glog.V(4).Infof("%d clients available to process the event", len(c.consumers))
 			next := (c.last + 1) % len(c.consumers)
 
 			consumer := c.consumers[next]
 			if err := consumer.Consume(evt); err != nil {
-				glog.V(4).Info("Error while pushing event to the client: ", err)
+				glog.V(1).Info("Error while pushing event to the client: ", err)
 			} else {
 				glog.V(4).Info("Event pushed back to the client")
 			}
 			c.last = next
 		} else {
-			glog.V(4).Info("No consumers available for pushing the event")
+			glog.V(1).Info("No clients available for pushing the event")
 		}
 		return true, nil
 	} else if connected, ok := value.(*notification.ClientConnectedNotification); ok {
