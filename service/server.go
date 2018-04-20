@@ -77,8 +77,9 @@ func (srv *DefaultDataMeshServer) Connect(server protobuf.DataMesh_ConnectServer
 	return nil
 }
 
-func (srv *DefaultDataMeshServer) Read(ctx context.Context, path *protobuf.Path) (*protobuf.Data, error) {
-	version, data, err := srv.retriever.Get(path.Location)
+func (srv *DefaultDataMeshServer) Read(ctx context.Context, req *protobuf.ReadRequest) (*protobuf.Data, error) {
+	// TODO switch to correct context
+	version, data, err := srv.retriever.Get(req.Path.Location)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +92,7 @@ func (srv *DefaultDataMeshServer) Read(ctx context.Context, path *protobuf.Path)
 	return &protobuf.Data{
 		Path: &protobuf.Path{
 			Version: version,
-			Location: path.Location,
+			Location: req.Path.Location,
 		},
 		Content: jsonData,
 	}, nil

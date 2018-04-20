@@ -20,7 +20,7 @@ service DataMesh {
     }
 
     // Used by the client to query the projections.
-    rpc Read (Path) returns (Data) {
+    rpc Read (ReadRequest) returns (Data) {
     }
 }
 
@@ -80,6 +80,12 @@ message Event {
     uint64  version             = 6;
 }
 
+// A read request
+message ReadRequest {
+    Context context = 1;
+    Path    path    = 2;
+}
+
 // A path in the projection store
 message Path {
     string  location    = 1;
@@ -93,6 +99,7 @@ message Data {
     bytes   content = 2;
 }
 
+// The status of a connected client
 message Status {
     oneof status {
         Context connect     = 1;
@@ -100,6 +107,7 @@ message Status {
     }
 }
 
+// A context representing the projection to which a client is connected
 message Context {
     string  name        = 1;
     uint64  revision    = 2;
