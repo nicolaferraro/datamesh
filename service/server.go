@@ -47,12 +47,21 @@ func (srv *DefaultDataMeshServer) Process(ctx context.Context, transaction *prot
 func (srv *DefaultDataMeshServer) Connect(server protobuf.DataMesh_ConnectServer) error {
 	glog.V(1).Info("Processing client connected")
 	consumer := protobuf.NewProcessQueueConsumer(server)
-	srv.bus.Notify(notification.NewClientConnectedNotification(consumer))
 
 	disconnect := make(chan bool, 1)
 	go func() {
-		server.Recv()
-		disconnect <- true
+		contextReceived := false
+		for {
+			status, err := server.Recv()
+			if err != nil || status.GetDisconnect() != nil {
+				disconnect <- true
+				return
+			} else if status.GetConnect() != nil && !contextReceived {
+				contextReceived = true
+				glog.V(1).Infof("Processing client using context %s with revision %d", status.GetConnect().Name, status.GetConnect().Revision)
+				srv.bus.Notify(notification.NewClientConnectedNotification(consumer))
+			}
+		}
 	}()
 
 	select {

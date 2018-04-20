@@ -16,7 +16,7 @@ service DataMesh {
     }
 
     // The server sends events that need to be processed. The client will reply with the corresponding transactions asynchronously.
-    rpc Connect (stream Disconnect) returns (stream Event) {
+    rpc Connect (stream Status) returns (stream Event) {
     }
 
     // Used by the client to query the projections.
@@ -28,8 +28,10 @@ service DataMesh {
 message Transaction {
     // The trigger
     Event               event       = 1;
+    // The projection context
+    Context             context     = 2;
     // The operations
-    repeated Operation  operations  = 2;
+    repeated Operation  operations  = 3;
 }
 
 message Operation {
@@ -91,8 +93,17 @@ message Data {
     bytes   content = 2;
 }
 
-// Placeholder message for client disconnecting
-message Disconnect {}
+message Status {
+    oneof status {
+        Context connect     = 1;
+        Empty   disconnect  = 2;
+    }
+}
+
+message Context {
+    string  name        = 1;
+    uint64  revision    = 2;
+}
 
 // A placeholder for empty message
 message Empty {}
