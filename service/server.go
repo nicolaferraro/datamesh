@@ -44,17 +44,24 @@ func (srv *DefaultDataMeshServer) Process(ctx context.Context, transaction *prot
 	return &protobuf.Empty{}, nil
 }
 
-
-func (srv *DefaultDataMeshServer) ProcessQueue(empty *protobuf.Empty, server protobuf.DataMesh_ProcessQueueServer) error {
+func (srv *DefaultDataMeshServer) Connect(server protobuf.DataMesh_ConnectServer) error {
 	glog.V(1).Info("Processing client connected")
 	consumer := protobuf.NewProcessQueueConsumer(server)
 	srv.bus.Notify(notification.NewClientConnectedNotification(consumer))
 
+	disconnect := make(chan bool, 1)
+	go func() {
+		server.Recv()
+		disconnect <- true
+	}()
+
 	select {
-		case <- consumer.Closed:
-			glog.V(1).Info("Processing client disconnected by server")
-		case <- server.Context().Done():
-			glog.V(1).Info("Processing client disconnected (gone)")
+	case <- consumer.Closed:
+		glog.V(1).Info("Processing client disconnected by server")
+	case <- server.Context().Done():
+		glog.V(1).Info("Processing client disconnected (gone)")
+	case <- disconnect:
+		glog.V(1).Info("Processing client sent a disconnect message")
 	}
 
 	srv.bus.Notify(notification.NewClientDisconnectedNotification(consumer))

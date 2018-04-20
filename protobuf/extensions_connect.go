@@ -3,7 +3,7 @@ package protobuf
 
 // Make it compatible with common.EventConsumer
 type ProcessQueueConsumer struct {
-	queue		DataMesh_ProcessQueueServer
+	queue	 	DataMesh_ConnectServer
 	Closed		chan bool
 }
 
@@ -15,7 +15,7 @@ func (consumer *ProcessQueueConsumer) Consume(event *Event) error {
 	return nil
 }
 
-func NewProcessQueueConsumer(queue DataMesh_ProcessQueueServer) *ProcessQueueConsumer {
+func NewProcessQueueConsumer(queue DataMesh_ConnectServer) *ProcessQueueConsumer {
 	return &ProcessQueueConsumer{
 		queue: queue,
 	}

@@ -16,7 +16,7 @@ service DataMesh {
     }
 
     // The server sends events that need to be processed. The client will reply with the corresponding transactions asynchronously.
-    rpc ProcessQueue (Empty) returns (stream Event) {
+    rpc Connect (stream Disconnect) returns (stream Event) {
     }
 
     // Used by the client to query the projections.
@@ -90,6 +90,9 @@ message Data {
     // JSON encoded content
     bytes   content = 2;
 }
+
+// Placeholder message for client disconnecting
+message Disconnect {}
 
 // A placeholder for empty message
 message Empty {}
