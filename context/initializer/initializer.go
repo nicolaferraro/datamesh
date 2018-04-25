@@ -14,6 +14,7 @@ const (
 
 type Initializer struct {
 	ctx				context.Context
+	contextId		string
 	started			bool
 	terminated		bool
 	eventlog		*eventlog.EventLog
@@ -23,9 +24,10 @@ type Initializer struct {
 	currentVersion	uint64
 }
 
-func NewInitializer(ctx context.Context, eventlog *eventlog.EventLog, bus *notification.NotificationBus) *Initializer {
+func NewInitializer(ctx context.Context, contextId string, eventlog *eventlog.EventLog, bus *notification.NotificationBus) *Initializer {
 	init := Initializer{
 		ctx: ctx,
+		contextId: contextId,
 		eventlog: eventlog,
 		bus: bus,
 	}
@@ -39,7 +41,7 @@ func NewInitializer(ctx context.Context, eventlog *eventlog.EventLog, bus *notif
 func (init *Initializer) OnNotification(n notification.Notification) {
 	if init.terminated {
 		return
-	} else if n.MeshStartNotification != nil {
+	} else if n.MeshContextStartNotification != nil {
 		if !init.started {
 			init.started = true
 			go init.run()
@@ -57,11 +59,11 @@ func (init *Initializer) OnNotification(n notification.Notification) {
 }
 
 func (init *Initializer) run() {
-	glog.Info("Data Mesh projection initialization started")
+	glog.Infof("Data Mesh context %s initialization started", init.contextId)
 
 	reader, err := init.eventlog.NewReader()
 	if err != nil {
-		glog.Error("Error during projection initialization: ", err)
+		glog.Error("Error during initialization of context " + init.contextId + ": ", err)
 		return
 		// TODO handle better
 	}
@@ -74,7 +76,7 @@ func (init *Initializer) run() {
 			init.semaphore.Acquire(init.ctx, 1)
 			evt, err := reader.Next()
 			if err != nil {
-				glog.Error("Error while replaying event log initialization: ", err)
+				glog.Error("Error while replaying event log initialization in context " + init.contextId + ": ", err)
 				return
 				// TODO handle better
 			}
@@ -89,7 +91,7 @@ func (init *Initializer) run() {
 func (init *Initializer) initialized() {
 	if !init.terminated {
 		init.terminated = true
-		glog.Infof("Data Mesh projection initialized at version %d\n", init.targetVersion)
-		init.bus.Notify(notification.NewMeshInitializedNotification())
+		glog.Infof("Data Mesh context %s initialized at version %d", init.contextId, init.targetVersion)
+		init.bus.Notify(notification.NewMeshContextInitializedNotification())
 	}
 }

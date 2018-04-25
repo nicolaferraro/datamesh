@@ -14,6 +14,7 @@ const (
 )
 
 type EventProcessor struct {
+	contextId			string
 	communicator		*Communicator
 	serializer			*common.Serializer
 	projectionVersion	uint64
@@ -44,9 +45,11 @@ type nextVersionInfo struct {
 	Version	uint64
 }
 
-func NewEventProcessor(ctx context.Context, bus *notification.NotificationBus) *EventProcessor {
-	proc := EventProcessor{}
-	proc.communicator = NewCommunicator(ctx, bus)
+func NewEventProcessor(ctx context.Context, contextId string, bus *notification.NotificationBus) *EventProcessor {
+	proc := EventProcessor{
+		contextId: contextId,
+	}
+	proc.communicator = NewCommunicator(ctx, contextId, bus)
 	proc.serializer = common.NewSerializer(ctx, &proc)
 	proc.states = make(map[uint64]eventInfo)
 

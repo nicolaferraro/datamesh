@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"github.com/nicolaferraro/datamesh/mesh"
 	"fmt"
 	"os"
 	"github.com/nicolaferraro/datamesh/service"
@@ -33,7 +32,7 @@ func main() {
 
 	if contexName == "server" {
 		ctx, cancel := context.WithCancel(context.Background())
-		msh, err := mesh.NewMesh(ctx, *dir, *port)
+		msh, err := service.NewMesh(ctx, *dir, *port)
 		if err != nil {
 			glog.Fatal("Cannot initialize data mesh: ", err)
 		}

@@ -14,9 +14,10 @@ import (
 
 func initTransactionManager() *TransactionManager {
 	ctx := context.Background()
-	prj := projection.NewProjection()
+	id := "dummy/1"
+	prj := projection.NewProjection(id)
 	bus := notification.NewNotificationBus(ctx)
-	tx := NewTransactionManager(ctx, prj, bus)
+	tx := NewTransactionManager(ctx, id, prj, bus)
 	return tx
 }
 

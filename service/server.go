@@ -10,23 +10,22 @@ import (
 	"encoding/json"
 	"github.com/nicolaferraro/datamesh/notification"
 	"github.com/golang/glog"
+	meshcontext "github.com/nicolaferraro/datamesh/context"
 )
 
 
 type DefaultDataMeshServer struct {
 	port     			int
 	consumer			common.EventConsumer
-	bus					*notification.NotificationBus
-	retriever			common.DataRetriever
+	mesh				*Mesh
 	grpcServer 			*grpc.Server
 }
 
-func NewDefaultDataMeshServer(port int, bus *notification.NotificationBus, consumer common.EventConsumer, retriever common.DataRetriever) *DefaultDataMeshServer {
+func NewDefaultDataMeshServer(port int, consumer common.EventConsumer, msh *Mesh) *DefaultDataMeshServer {
 	return &DefaultDataMeshServer{
 		port: port,
 		consumer: consumer,
-		bus: bus,
-		retriever: retriever,
+		mesh: msh,
 	}
 }
 
@@ -37,10 +36,10 @@ func (srv *DefaultDataMeshServer) Push(ctx context.Context, evt *protobuf.Event)
 	return &protobuf.Empty{}, nil
 }
 
-
 func (srv *DefaultDataMeshServer) Process(ctx context.Context, transaction *protobuf.Transaction) (*protobuf.Empty, error) {
 	glog.V(10).Infof("Received transaction with version %d\n", transaction.Event.Version)
-	srv.bus.Notify(notification.NewTransactionReceivedNotification(transaction))
+	meshContext := srv.mesh.GetContext(transaction.Context.Name, transaction.Context.Revision)
+	meshContext.Notify(notification.NewTransactionReceivedNotification(transaction))
 	return &protobuf.Empty{}, nil
 }
 
@@ -49,6 +48,7 @@ func (srv *DefaultDataMeshServer) Connect(server protobuf.DataMesh_ConnectServer
 	consumer := protobuf.NewProcessQueueConsumer(server)
 
 	disconnect := make(chan bool, 1)
+	var meshContextRef *meshcontext.MeshContext
 	go func() {
 		contextReceived := false
 		for {
@@ -59,7 +59,8 @@ func (srv *DefaultDataMeshServer) Connect(server protobuf.DataMesh_ConnectServer
 			} else if status.GetConnect() != nil && !contextReceived {
 				contextReceived = true
 				glog.V(1).Infof("Processing client using context %s with revision %d", status.GetConnect().Name, status.GetConnect().Revision)
-				srv.bus.Notify(notification.NewClientConnectedNotification(consumer))
+				meshContextRef = srv.mesh.GetContext(status.GetConnect().Name, status.GetConnect().Revision)
+				meshContextRef.Notify(notification.NewClientConnectedNotification(consumer))
 			}
 		}
 	}()
@@ -73,13 +74,15 @@ func (srv *DefaultDataMeshServer) Connect(server protobuf.DataMesh_ConnectServer
 		glog.V(1).Info("Processing client sent a disconnect message")
 	}
 
-	srv.bus.Notify(notification.NewClientDisconnectedNotification(consumer))
+	if meshContextRef != nil {
+		meshContextRef.Notify(notification.NewClientDisconnectedNotification(consumer))
+	}
 	return nil
 }
 
 func (srv *DefaultDataMeshServer) Read(ctx context.Context, req *protobuf.ReadRequest) (*protobuf.Data, error) {
-	// TODO switch to correct context
-	version, data, err := srv.retriever.Get(req.Path.Location)
+	meshContext := srv.mesh.GetContext(req.Context.Name, req.Context.Revision)
+	version, data, err := meshContext.GetDataRetriever().Get(req.Path.Location)
 	if err != nil {
 		return nil, err
 	}

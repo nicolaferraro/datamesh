@@ -16,6 +16,7 @@ const (
 )
 
 type TransactionManager struct {
+	contextId		string
 	projection		*projection.Projection
 	bus				*notification.NotificationBus
 	globalVersion	uint64
@@ -24,8 +25,9 @@ type TransactionManager struct {
 	preflightBuffer	map[string]bool
 }
 
-func NewTransactionManager(ctx context.Context, projection *projection.Projection, bus *notification.NotificationBus) *TransactionManager {
+func NewTransactionManager(ctx context.Context, contextId string, projection *projection.Projection, bus *notification.NotificationBus) *TransactionManager {
 	tx := TransactionManager{
+		contextId: contextId,
 		projection: projection,
 		bus: bus,
 		preflightBuffer: make(map[string]bool),
@@ -38,7 +40,7 @@ func NewTransactionManager(ctx context.Context, projection *projection.Projectio
 
 func (tx *TransactionManager) OnNotification(n notification.Notification) {
 	if n.TransactionReceivedNotification != nil {
-		glog.V(4).Infof("Received transaction for event %s\n", n.TransactionReceivedNotification.Transaction.Event.Name)
+		glog.V(4).Infof("Received transaction for event %s in context %s", n.TransactionReceivedNotification.Transaction.Event.Name, tx.contextId)
 		tx.serializer.Push(n.TransactionReceivedNotification.Transaction)
 	} else if n.EventAppendedNotification != nil {
 		tx.eventCache.Register(n.EventAppendedNotification.Event)
@@ -53,7 +55,7 @@ func (tx *TransactionManager) OnNotification(n notification.Notification) {
 func (tx *TransactionManager) ExecuteSerially(value interface{}) (bool, error) {
 	if transaction, ok := value.(*protobuf.Transaction); ok {
 		if transaction == nil || transaction.Event == nil {
-			return false, errors.New("Cannot apply empty or incomplete transaction")
+			return false, errors.New("Cannot apply empty or incomplete transaction in context " + tx.contextId)
 		}
 
 		eventVersion := transaction.Event.Version
@@ -62,10 +64,10 @@ func (tx *TransactionManager) ExecuteSerially(value interface{}) (bool, error) {
 		if eventVersion == 0 {
 			if cachedEvent == nil {
 				if len(tx.preflightBuffer) > MaxPreflightBufferSize {
-					return false, errors.New("Cannot find event in cache and buffer is full")
+					return false, errors.New("Cannot find event in cache and buffer is full in context " + tx.contextId)
 				} else {
 					tx.preflightBuffer[transaction.Event.ClientIdentifier] = true
-					glog.V(10).Info("Buffering transaction ", transaction.Event.ClientIdentifier)
+					glog.V(10).Info("Buffering transaction ", transaction.Event.ClientIdentifier, " in context", tx.contextId)
 					return false, nil
 				}
 			}
@@ -75,11 +77,11 @@ func (tx *TransactionManager) ExecuteSerially(value interface{}) (bool, error) {
 
 		prjVersion := tx.projection.Version
 		if eventVersion <= prjVersion {
-			glog.V(1).Infof("Discarding old transaction for version %d\n", eventVersion)
+			glog.V(1).Infof("Discarding old transaction for version %d in context %s", eventVersion, tx.contextId)
 			return true, nil
 		} else if eventVersion > prjVersion + MaxTransactionShift {
-			glog.V(1).Infof("Discarding new transaction %d to keep the transaction buffer size low\n", eventVersion)
-			tx.bus.Notify(notification.NewTransactionFailedNotification(tx.projection, cachedEvent, errors.New("Too much traffic")))
+			glog.V(1).Infof("Discarding new transaction %d to keep the transaction buffer size low in context %s", eventVersion, tx.contextId)
+			tx.bus.Notify(notification.NewTransactionFailedNotification(tx.projection, cachedEvent, errors.New("Too much traffic in context " + tx.contextId)))
 			return true, nil
 		} else if eventVersion != prjVersion + 1 {
 			return false, nil // enqueue if not next
@@ -95,14 +97,14 @@ func (tx *TransactionManager) ExecuteSerially(value interface{}) (bool, error) {
 				}
 
 				if path.Version < currentVersion {
-					glog.V(1).Infof("Cannot apply transaction %d. Data read by transaction has changed from version %d to %d. Discarding.\n", eventVersion, path.Version, currentVersion)
-					tx.bus.Notify(notification.NewTransactionFailedNotification(tx.projection, cachedEvent, errors.New("Transaction conflict")))
+					glog.V(1).Infof("Cannot apply transaction %d in context %s. Data read by transaction has changed from version %d to %d. Discarding.\n", eventVersion, tx.contextId, path.Version, currentVersion)
+					tx.bus.Notify(notification.NewTransactionFailedNotification(tx.projection, cachedEvent, errors.New("Transaction conflict in context " + tx.contextId)))
 					return true, nil
 				}
 			}
 		}
 
-		glog.V(1).Infof("Applying transaction %d\n", eventVersion)
+		glog.V(1).Infof("Applying transaction %d in context %s", eventVersion, tx.contextId)
 		for _, operation := range transaction.Operations {
 			if err := tx.applyOperation(operation); err != nil {
 				tx.projection.Rollback()

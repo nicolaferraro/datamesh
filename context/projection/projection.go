@@ -17,12 +17,14 @@ const (
 )
 
 type Projection struct {
+	contextId	string
 	Version		uint64
 	root		*node
 }
 
-func NewProjection() *Projection {
+func NewProjection(contextId string) *Projection {
 	return &Projection{
+		contextId: contextId,
 		root: newNode(),
 	}
 }

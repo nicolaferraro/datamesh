@@ -8,8 +8,8 @@ import (
 
 // Container for all notifications
 type Notification struct {
-	MeshStartNotification				*MeshStartNotification
-	MeshInitializedNotification			*MeshInitializedNotification
+	MeshContextStartNotification		*MeshContextStartNotification
+	MeshContextInitializedNotification	*MeshContextInitializedNotification
 	EventAppendedNotification			*EventAppendedNotification
 	TransactionReceivedNotification		*TransactionReceivedNotification
 	TransactionProcessedNotification	*TransactionProcessedNotification
@@ -18,23 +18,23 @@ type Notification struct {
 	ClientDisconnectedNotification		*ClientDisconnectedNotification
 }
 
-// Signals that all pieces of the mesh have been connected
-type MeshStartNotification struct {
+// Signals that all pieces of a mesh context have been connected
+type MeshContextStartNotification struct {
 }
 
-func NewMeshStartNotification() Notification {
+func NewMeshContextStartNotification() Notification {
 	return Notification{
-		MeshStartNotification: &MeshStartNotification{},
+		MeshContextStartNotification: &MeshContextStartNotification{},
 	}
 }
 
-// Signals that the mesh has been completely initialized (e.g. projections aligned)
-type MeshInitializedNotification struct {
+// Signals that a mesh context has been completely initialized (e.g. projections aligned)
+type MeshContextInitializedNotification struct {
 }
 
-func NewMeshInitializedNotification() Notification {
+func NewMeshContextInitializedNotification() Notification {
 	return Notification{
-		MeshInitializedNotification: &MeshInitializedNotification{},
+		MeshContextInitializedNotification: &MeshContextInitializedNotification{},
 	}
 }
 

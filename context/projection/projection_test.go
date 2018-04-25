@@ -8,7 +8,7 @@ import (
 
 func TestBasicWR(t *testing.T) {
 
-	prj := NewProjection()
+	prj := NewProjection("dummy/1")
 
 	prj.Upsert("a.b", 1)
 	prj.Commit()
@@ -31,7 +31,7 @@ func TestBasicWR(t *testing.T) {
 
 func TestBasicWD(t *testing.T) {
 
-	prj := NewProjection()
+	prj := NewProjection("dummy/1")
 
 	prj.Upsert("a.b", 1)
 	prj.Upsert("a.c", 2)
@@ -63,7 +63,7 @@ func TestBasicWD(t *testing.T) {
 
 func TestSubtreeDelete(t *testing.T) {
 
-	prj := NewProjection()
+	prj := NewProjection("dummy/2")
 
 	prj.Upsert("a.b", 1)
 	prj.Upsert("a.c.1", 2)
@@ -93,7 +93,7 @@ func TestSubtreeDelete(t *testing.T) {
 
 func TestSubtreeUpsert(t *testing.T) {
 
-	prj := NewProjection()
+	prj := NewProjection("dummy/2")
 
 	prj.Upsert("a.b", 1)
 	prj.Upsert("a.c.1", 2)
@@ -114,7 +114,7 @@ func TestSubtreeUpsert(t *testing.T) {
 
 func TestSubtreeUpsertRestore(t *testing.T) {
 
-	prj := NewProjection()
+	prj := NewProjection("dummy/3")
 
 	prj.Upsert("a.b", 1)
 	prj.Upsert("a.c.1", 2)
@@ -140,7 +140,7 @@ func TestSubtreeUpsertRestore(t *testing.T) {
 
 func TestSubtreeUpsertRestoreRollback(t *testing.T) {
 
-	prj := NewProjection()
+	prj := NewProjection("dummy/9")
 
 	prj.Upsert("a.b", 1)
 	prj.Upsert("a.c.1", 2)
