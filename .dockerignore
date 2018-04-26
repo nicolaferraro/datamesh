@@ -1,0 +1,11 @@
+.idea
+*.iml
+
+.project
+.metadata
+
+.testdata
+datamesh
+data
+
+Dockerfile
