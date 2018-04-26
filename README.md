@@ -1,5 +1,7 @@
 # DataMesh
 
+[![CircleCI](https://circleci.com/gh/nicolaferraro/datamesh.svg?style=svg)](https://circleci.com/gh/nicolaferraro/datamesh)
+
 A experimental project for building a **event-based datastore** in go (study purpose).
 
 ## What's a event-based datastore?
