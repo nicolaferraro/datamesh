@@ -32,7 +32,7 @@ func TestLogReader(t *testing.T) {
 		assert.Nil(t, eventLog.Consume(&evt))
 	}
 
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond)
 	assert.Nil(t, eventLog.Sync())
 
 	reader, err := eventLog.NewReader()
