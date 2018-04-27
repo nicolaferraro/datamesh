@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: List
+items:
+
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: datamesh
+    name: datamesh
+  spec:
+    ports:
+    - name: 6543-tcp
+      port: 6543
+      protocol: TCP
+      targetPort: 6543
+    selector:
+      app: datamesh
+
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: datamesh
+    name: datamesh-headless
+  spec:
+    clusterIP: None
+    ports:
+    - name: 6543-tcp
+      port: 6543
+      protocol: TCP
+      targetPort: 6543
+    selector:
+      app: datamesh
+
+
+- apiVersion: apps/v1beta1
+  kind: StatefulSet
+  metadata:
+    labels:
+      app: datamesh
+    name: datamesh
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: datamesh
+    serviceName: datamesh-headless
+    template:
+      metadata:
+        labels:
+          app: datamesh
+      spec:
+        containers:
+        - env:
+          - name: KUBERNETES_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          image: docker.io/nicolaferraro/datamesh:latest
+          imagePullPolicy: Always
+          name: datamesh
+          ports:
+          - containerPort: 6543
+            name: 6543-tcp
+            protocol: TCP
+          volumeMounts:
+          - mountPath: /var/datamesh/data
+            name: datamesh-data
+        volumes:
+        - name: datamesh-data
+          persistentVolumeClaim:
+            claimName: datamesh
+
+
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    labels:
+      app: datamesh
+    name: datamesh
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 1Gi
