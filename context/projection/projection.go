@@ -1,19 +1,8 @@
 package projection
 
 import (
-	"strings"
-	"regexp"
-	"errors"
 	"sync"
-)
-
-const (
-	PathSeparator			= "."
-
-	ErrorIllegalKey			= "EDB_ILLEGAL_KEY"
-	ErrorNoRootSpecified	= "EDB_NO_ROOT_SPECIFIED"
-
-	keyPartPattern			= "^[A-Za-z0-9]+[A-Za-z0-9_-]*$"
+	"strconv"
 )
 
 type Projection struct {
@@ -45,7 +34,7 @@ func newNode() *node {
 }
 
 func (prj *Projection) Upsert(key string, value interface{}) error {
-	parts, err := parseKey(key)
+	parts, err := ParseKey(key)
 	if err != nil {
 		return err
 	}
@@ -54,7 +43,7 @@ func (prj *Projection) Upsert(key string, value interface{}) error {
 }
 
 func (prj *Projection) Delete(key string) error {
-	parts, err := parseKey(key)
+	parts, err := ParseKey(key)
 	if err != nil {
 		return err
 	}
@@ -63,7 +52,7 @@ func (prj *Projection) Delete(key string) error {
 }
 
 func (prj *Projection) Get(key string) (uint64, interface{}, error) {
-	parts, err := parseKey(key)
+	parts, err := ParseKey(key)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -217,7 +206,26 @@ func getTreeValue(n *node, version uint64) (uint64, interface{}) {
 	if tree == nil {
 		return 0, nil
 	}
-	return treeMaxVer, tree
+
+	// Check if tree is a slice
+	isSlice := true
+	for i:=0; i < len(tree); i++ {
+		if _, ok := tree[strconv.Itoa(i)]; !ok {
+			isSlice = false
+			break
+		}
+	}
+
+	if (isSlice) {
+		slicedTree := make([]interface{}, 0, len(tree))
+		for i:=0; i < len(tree); i++ {
+			val, _ := tree[strconv.Itoa(i)]
+			slicedTree = append(slicedTree, val)
+		}
+		return treeMaxVer, slicedTree
+	} else {
+		return treeMaxVer, tree
+	}
 }
 
 func rollback(n *node, version uint64) error {
@@ -232,25 +240,4 @@ func rollback(n *node, version uint64) error {
 		}
 	}
 	return nil
-}
-
-func parseKey(key string) ([]string, error) {
-	parts := strings.Split(key, PathSeparator)
-
-	partsPattern, err := regexp.Compile(keyPartPattern)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, part := range parts {
-		if !partsPattern.MatchString(part) {
-			return nil, errors.New(ErrorIllegalKey)
-		}
-	}
-
-	if len(parts) == 0 {
-		return nil, errors.New(ErrorNoRootSpecified)
-	}
-
-	return parts, nil
 }
