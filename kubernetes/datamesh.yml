@@ -60,7 +60,7 @@ items:
               fieldRef:
                 fieldPath: metadata.namespace
           image: docker.io/nicolaferraro/datamesh:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           name: datamesh
           ports:
           - containerPort: 6543
