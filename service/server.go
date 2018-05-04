@@ -123,6 +123,17 @@ func (srv *DefaultDataMeshServer) Read(ctx context.Context, req *protobuf.ReadRe
 	}, nil
 }
 
+func (srv *DefaultDataMeshServer) Health(ctx context.Context, context *protobuf.Context) (*protobuf.Readiness, error) {
+	meshContext := srv.mesh.GetContext(context.Name, context.Revision)
+
+	readiness := &protobuf.Readiness{
+		Context: context,
+		Ready: meshContext.Status() == meshcontext.Ready,
+	}
+
+	return readiness, nil
+}
+
 func (srv *DefaultDataMeshServer) Start() error {
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", srv.port))
 	if err != nil {
