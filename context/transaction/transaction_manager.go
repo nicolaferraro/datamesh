@@ -14,7 +14,7 @@ import (
 const (
 	MaxTransactionShift = 50
 	MaxPreflightBufferSize = 25
-	MaxTimeInPreflightBuffer = 10 * time.Second
+	MaxTimeInPreflightBufferSeconds = 10
 )
 
 type TransactionManager struct {
@@ -57,23 +57,29 @@ func (tx *TransactionManager) OnNotification(n notification.Notification) {
 func (tx *TransactionManager) ExecuteSerially(value interface{}) (bool, error) {
 	if transaction, ok := value.(*protobuf.Transaction); ok {
 		if transaction == nil || transaction.Event == nil {
-			return false, errors.New("Cannot apply empty or incomplete transaction in context " + tx.contextId)
+			return true, errors.New("Cannot apply empty or incomplete transaction in context " + tx.contextId)
 		}
-
-		// Delete old snapshots
-		tx.cleanupPreflightBuffer()
 
 		eventVersion := transaction.Event.Version
 		cachedEvent := tx.eventCache.Get(transaction.Event.ClientIdentifier)
 
 		if eventVersion == 0 {
 			if cachedEvent == nil {
-				if len(tx.preflightBuffer) > MaxPreflightBufferSize {
-					return false, errors.New("Cannot find event in cache and buffer is full in context " + tx.contextId)
+				if transactionTime, present := tx.preflightBuffer[transaction.Event.ClientIdentifier]; present {
+					if transactionTime < time.Now().Unix() - MaxTimeInPreflightBufferSeconds {
+						delete(tx.preflightBuffer, transaction.Event.ClientIdentifier)
+						return true, errors.New("Unsolicited transaction " + transaction.Event.ClientIdentifier + " discarded in context " + tx.contextId + ": expired")
+					} else {
+						return false, nil
+					}
 				} else {
-					tx.preflightBuffer[transaction.Event.ClientIdentifier] = time.Now().Unix()
-					glog.V(10).Info("Buffering transaction ", transaction.Event.ClientIdentifier, " in context", tx.contextId)
-					return false, nil
+					if len(tx.preflightBuffer) > MaxPreflightBufferSize {
+						return true, errors.New("Cannot find event in cache and buffer is full in context " + tx.contextId)
+					} else {
+						tx.preflightBuffer[transaction.Event.ClientIdentifier] = time.Now().Unix()
+						glog.V(10).Info("Buffering transaction ", transaction.Event.ClientIdentifier, " in context", tx.contextId)
+						return false, nil
+					}
 				}
 			}
 			eventVersion = cachedEvent.Version
@@ -113,37 +119,18 @@ func (tx *TransactionManager) ExecuteSerially(value interface{}) (bool, error) {
 		for _, operation := range transaction.Operations {
 			if err := tx.applyOperation(operation); err != nil {
 				tx.projection.Rollback()
-				return false, err
+				return true, err
 			}
 		}
 
 		if err := tx.projection.Commit(); err != nil {
-			return false, err
+			return true, err
 		}
 
 		tx.bus.Notify(notification.NewTransactionProcessedNotification(tx.projection, eventVersion))
 		return true, nil
 	}
 	return false, nil
-}
-
-func (tx *TransactionManager) cleanupPreflightBuffer() {
-	now := time.Now().Unix()
-	var oldEvents []string
-	for k, v := range tx.preflightBuffer {
-		if v < now - int64(MaxTimeInPreflightBuffer) {
-			if oldEvents == nil {
-				oldEvents = make([]string, 0)
-			}
-			oldEvents = append(oldEvents, k)
-		}
-	}
-	if oldEvents != nil {
-		for _, id := range oldEvents {
-			glog.V(4).Infof("Deleting transaction %s from preflight buffer: expired", id)
-			delete(tx.preflightBuffer, id)
-		}
-	}
 }
 
 func (tx *TransactionManager) applyOperation(operation *protobuf.Operation) error {

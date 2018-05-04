@@ -60,7 +60,9 @@ func (serializer *Serializer) applyPending() {
 		if ok, err := serializer.executor.ExecuteSerially(value); ok || err != nil {
 			if err != nil {
 				glog.Error("Error while processing: ", err)
-			} else {
+			}
+
+			if ok {
 				if queueLen := len(serializer.queue); queueLen > 1 {
 					if idx == 0 {
 						serializer.queue = serializer.queue[1:]

@@ -80,16 +80,18 @@ func (log *EventLog) ExecuteSerially(value interface{}) (bool, error) {
 	if evt, ok := value.(*protobuf.Event); ok {
 		msg, err := proto.Marshal(evt)
 		if err != nil {
-			return false, err
+			return true, err
 		}
 
 		newSize, err := log.AppendRaw(msg)
 
-		evtCopy := *evt
-		evtCopy.Version = newSize
+		if err == nil {
+			evtCopy := *evt
+			evtCopy.Version = newSize
 
-		// FIXME do it at every sync for all events
-		log.notificationBus.Notify(notification.NewEventAppendedNotification(&evtCopy, false))
+			// FIXME do it at every sync for all events
+			log.notificationBus.Notify(notification.NewEventAppendedNotification(&evtCopy, false))
+		}
 
 		return true, err
 	}
