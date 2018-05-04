@@ -104,6 +104,7 @@ message Status {
     oneof status {
         Context connect     = 1;
         Empty   disconnect  = 2;
+        Empty   ping        = 3;
     }
 }
 

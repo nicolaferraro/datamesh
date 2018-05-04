@@ -11,8 +11,13 @@ import (
 	"github.com/nicolaferraro/datamesh/notification"
 	"github.com/golang/glog"
 	meshcontext "github.com/nicolaferraro/datamesh/context"
+	"time"
+	"errors"
 )
 
+const (
+	PingMaxDelay = 150 * time.Second
+)
 
 type DefaultDataMeshServer struct {
 	port     			int
@@ -48,6 +53,7 @@ func (srv *DefaultDataMeshServer) Connect(server protobuf.DataMesh_ConnectServer
 	consumer := protobuf.NewProcessQueueConsumer(server)
 
 	disconnect := make(chan bool, 1)
+	ping := make(chan bool, 1)
 	var meshContextRef *meshcontext.MeshContext
 	go func() {
 		contextReceived := false
@@ -61,23 +67,39 @@ func (srv *DefaultDataMeshServer) Connect(server protobuf.DataMesh_ConnectServer
 				glog.V(1).Infof("Processing client using context %s with revision %d", status.GetConnect().Name, status.GetConnect().Revision)
 				meshContextRef = srv.mesh.GetContext(status.GetConnect().Name, status.GetConnect().Revision)
 				meshContextRef.Notify(notification.NewClientConnectedNotification(consumer))
+			} else if status.GetPing() != nil {
+				select {
+				case ping <- true:
+				default:
+				}
 			}
 		}
 	}()
 
-	select {
-	case <- consumer.Closed:
-		glog.V(1).Info("Processing client disconnected by server")
-	case <- server.Context().Done():
-		glog.V(1).Info("Processing client disconnected (gone)")
-	case <- disconnect:
-		glog.V(1).Info("Processing client sent a disconnect message")
-	}
+	WhileActive:
+		for {
+			select {
+			case <-consumer.Closed:
+				glog.V(1).Info("Processing client disconnected by server")
+				break WhileActive;
+			case <-server.Context().Done():
+				glog.V(1).Info("Processing client disconnected (gone)")
+				break WhileActive;
+			case <-disconnect:
+				glog.V(1).Info("Processing client sent a disconnect message")
+				break WhileActive;
+			case <-ping:
+				glog.V(8).Info("Processing client sent a ping")
+			case <-time.After(PingMaxDelay):
+				glog.V(8).Infof("Ping not received within %d seconds: disconnecting client", PingMaxDelay / time.Second)
+				break WhileActive;
+			}
+		}
 
 	if meshContextRef != nil {
 		meshContextRef.Notify(notification.NewClientDisconnectedNotification(consumer))
 	}
-	return nil
+	return errors.New("Disconnected")
 }
 
 func (srv *DefaultDataMeshServer) Read(ctx context.Context, req *protobuf.ReadRequest) (*protobuf.Data, error) {
